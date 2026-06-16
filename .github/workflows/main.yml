@@ -21,6 +21,9 @@ jobs:
       run: chmod +x gradlew
 
     - name: Build with Gradle
+        defaults:
+      run:
+        working-directory: ./AmarHishab
       run: ./gradlew assembleDebug
 
     - name: Upload APK
