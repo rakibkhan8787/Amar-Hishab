@@ -1,0 +1,1267 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>প্রফেশনাল অল-ইন-ওয়ান ক্যালকুলেটর</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+
+        :root {
+            --bg-color: #ffffff; --text-color: #202124; --header-bg: #ffffff;
+            --header-shadow: rgba(0,0,0,0.05); --sidebar-bg: #f8f9fa;
+            --pad-bg: #ffffff; --btn-bg: #f8f9fa; --btn-num-bg: #ffffff;
+            --btn-text: #202124; --btn-border: #e8eaed; --primary: #1a73e8;
+            --border-color: #dadce0; --formula-title: #d93025; --fav-color: #fbbc04;
+        }
+
+        body.dark-mode {
+            --bg-color: #121212; --text-color: #e8eaed; --header-bg: #1e1e1e;
+            --header-shadow: rgba(0,0,0,0.5); --sidebar-bg: #1e1e1e;
+            --pad-bg: #121212; --btn-bg: #2c2c2c; --btn-num-bg: #202020;
+            --btn-text: #e8eaed; --btn-border: #3c4043; --primary: #8ab4f8;
+            --border-color: #3c4043; --formula-title: #f28b82;
+        }
+
+        html, body { overscroll-behavior: none; touch-action: pan-x pan-y; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; user-select: none; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--bg-color); color: var(--text-color); height: 100vh; width: 100vw; overflow: hidden; display: flex; flex-direction: column; transition: background-color 0.3s, color 0.3s; }
+
+        .header { height: 8vh; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; background: var(--header-bg); box-shadow: 0 2px 10px var(--header-shadow); z-index: 20; position: relative; }
+        .header-icons { display: flex; gap: 20px; align-items: center; }
+        .icon-btn { font-size: 1.4rem; color: #5f6368; background: none; border: none; cursor: pointer; transition: 0.2s; }
+        body.dark-mode .icon-btn { color: #9aa0a6; }
+        .icon-btn:active { transform: scale(0.85); color: var(--primary); }
+        .icon-btn.active-mode { color: var(--primary); }
+
+        .sidebar { position: fixed; top: 8vh; left: -100%; width: 80vw; max-width: 320px; height: 92vh; background: var(--sidebar-bg); box-shadow: 5px 0 15px var(--header-shadow); transition: left 0.3s ease; z-index: 30; overflow-y: auto; overscroll-behavior-y: contain; }
+        .sidebar.open { left: 0; }
+        .menu-item { padding: 15px 20px; font-size: 1.05rem; border-bottom: 1px solid var(--border-color); cursor: pointer; display: flex; align-items: center; gap: 15px; color: var(--text-color); }
+        .menu-item i { color: var(--primary); font-size: 1.2rem; width: 25px; text-align: center; }
+        .menu-item:active { background: var(--border-color); }
+        .overlay { position: fixed; top: 8vh; left: 0; width: 100vw; height: 92vh; background: rgba(0,0,0,0.5); display: none; z-index: 25; }
+        .overlay.active { display: block; }
+
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 999; display: none; justify-content: center; align-items: center; animation: fadeIn 0.2s ease-in-out;}
+        .modal-box { background: var(--bg-color); width: 85%; max-width: 350px; padding: 25px; border-radius: 12px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+        .modal-box h3 { color: var(--text-color); margin-bottom: 10px; font-size: 1.3rem; }
+        .modal-box p { color: #70757a; font-size: 1rem; margin-bottom: 25px; }
+        .modal-btns { display: flex; justify-content: space-between; gap: 15px; }
+        .m-btn { flex: 1; padding: 12px; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; }
+        .m-btn-cancel { background: var(--sidebar-bg); color: var(--text-color); border: 1px solid var(--border-color); }
+        .m-btn-exit { background: #d93025; color: white; }
+
+        .view-container { height: 92vh; display: none; flex-direction: column; width: 100%; position: relative; }
+        .view-container.active { display: flex; animation: fadeIn 0.2s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        .display { height: 32%; padding: 20px; display: flex; flex-direction: column; justify-content: flex-end; align-items: flex-end; background: var(--bg-color); position: relative; }
+        .mode-indicator { position: absolute; top: 15px; left: 20px; font-size: 0.9rem; font-weight: bold; color: var(--primary); }
+        .history-text { font-size: 1.3rem; color: #70757a; min-height: 2rem; margin-bottom: 5px; word-break: break-all; text-align:right;}
+        .result-text { font-size: 4rem; color: var(--text-color); font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; text-align: right; }
+
+        .keypad { height: 68%; padding: 10px 20px 20px 20px; display: grid; gap: 12px; background: var(--pad-bg); }
+        #keypad-standard { grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(5, 1fr); }
+        .btn { border: 1px solid var(--btn-border); border-radius: 50px; font-size: 1.8rem; background: var(--btn-num-bg); color: var(--btn-text); cursor: pointer; display: flex; justify-content: center; align-items: center; transition: 0.1s; }
+        .btn:active { transform: scale(0.92); background: var(--btn-bg); }
+        .txt-blue { color: var(--primary); font-weight: 500; }
+        .btn-eq { background: var(--primary); color: #ffffff; grid-column: 4; grid-row: 4 / 6; border-radius: 25px; font-size: 2.5rem; border: none; }
+        
+        #keypad-scientific { display: none; grid-template-columns: repeat(5, 1fr); grid-template-rows: repeat(8, 1fr); gap: 8px; padding: 10px 12px 15px 12px; }
+        #keypad-scientific .btn { border-radius: 8px; font-size: 1.1rem; background: var(--btn-bg); border: 1px solid var(--btn-border); }
+        #keypad-scientific .btn-num { background: var(--btn-num-bg); font-size: 1.4rem; font-weight: 500; }
+        #keypad-scientific .btn-top { background: #e8f0fe; color: #1a73e8; font-size: 0.95rem; font-weight: 600; }
+        body.dark-mode #keypad-scientific .btn-top { background: #1a3a5f; color: #8ab4f8; }
+
+        .panel-page { background: var(--bg-color); height: 100%; display: flex; flex-direction: column; overflow-y: auto; overscroll-behavior-y: contain; }
+        .page-header { display: flex; align-items: center; gap: 15px; font-size: 1.3rem; color: var(--text-color); font-weight: 600; padding: 15px 20px; border-bottom: 1px solid var(--border-color); position: sticky; top: 0; background: var(--bg-color); z-index: 10; margin: 0; }
+        .page-content { padding: 20px; flex-grow: 1; display: flex; flex-direction: column; }
+
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-size: 0.95rem; color: #70757a; margin-bottom: 5px; font-weight: 500; }
+        .form-control { width: 100%; padding: 12px; font-size: 1.1rem; border: 1.5px solid var(--border-color); border-radius: 8px; background: var(--bg-color); color: var(--text-color); outline: none; transition: 0.2s; }
+        .form-control:focus { border-color: var(--primary); }
+        .btn-action { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 1.1rem; cursor: pointer; margin-top: 10px; transition: 0.2s; font-weight: 500; }
+        .btn-action:active { transform: scale(0.98); }
+
+        .grid-menu { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+        .grid-card { background: var(--sidebar-bg); padding: 25px 10px; text-align: center; border-radius: 12px; cursor: pointer; border: 1px solid var(--border-color); transition: 0.2s; }
+        .grid-card:active { transform: scale(0.95); border-color: var(--primary); }
+        .grid-card i { font-size: 2rem; color: var(--primary); margin-bottom: 12px; }
+        .grid-card div { font-size: 1.05rem; color: var(--text-color); font-weight: 500; }
+
+        .formula-box { background: var(--sidebar-bg); border-radius: 12px; padding: 18px; margin-bottom: 20px; border: 1px solid var(--border-color); }
+        .f-title { color: var(--formula-title); font-size: 1.2rem; font-weight: 700; border-bottom: 2px solid var(--border-color); margin-bottom: 12px; padding-bottom: 8px; }
+        .formula-list { list-style: none; font-size: 1.05rem; line-height: 2; color: var(--text-color); }
+        .formula-list li { margin-bottom: 8px; padding-left: 15px; position: relative; }
+        .formula-list li::before { content: "•"; color: var(--primary); position: absolute; left: 0; font-weight: bold; }
+
+        .shape-icon { font-size: 2.5rem; color: var(--primary); display: block; margin-bottom: 10px; }
+        .geom-card { background: var(--bg-color); border: 1px solid var(--border-color); padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: center; }
+        .geom-card p { font-size: 0.95rem; color: var(--text-color); text-align: left; line-height: 1.6; margin-top: 10px; }
+
+        .setting-row { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid var(--border-color); }
+        .switch { position: relative; display: inline-block; width: 50px; height: 26px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--primary); }
+        input:checked + .slider:before { transform: translateX(24px); }
+        
+        .history-box { background: var(--sidebar-bg); border-radius: 8px; padding: 10px; min-height: 200px; max-height: 400px; overflow-y: auto; border: 1px solid var(--border-color); margin-top: 10px; }
+        .hist-item { padding: 15px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; transition: 0.2s; }
+        .hist-item:last-child { border-bottom: none; }
+        .hist-left { cursor: pointer; flex-grow: 1; }
+        .hist-right { display: flex; gap: 15px; align-items: center; font-size: 1.4rem; color: #70757a; cursor: pointer; padding:5px;}
+        .hist-fav.active { color: var(--fav-color); text-shadow: 0 0 5px rgba(251, 188, 4, 0.4); }
+
+        .info-text { font-size:0.95rem; color:#70757a; margin-top:10px; text-align:left; padding:15px; background:var(--sidebar-bg); border-radius:8px; border:1px solid var(--border-color); line-height: 1.6; }
+
+        .gpa-row { display: flex; gap: 6px; margin-bottom: 10px; align-items: center; width: 100%; }
+        .gpa-row input, .gpa-row select { padding: 10px 5px; border: 1px solid var(--border-color); border-radius: 5px; background: var(--bg-color); color: var(--text-color); min-width: 0; font-size: 0.95rem; }
+        .btn-remove { background: #fce8e6; color: #d93025; border: none; border-radius: 5px; padding: 10px; flex: 0.4; min-width: 30px; font-size: 1.1rem; cursor: pointer; transition: 0.2s; }
+        .btn-remove:active { transform: scale(0.9); }
+        .gpa-helper { display: flex; gap: 6px; margin-bottom: 15px; padding: 10px; background: #e8f0fe; border-radius: 8px; font-size: 0.85rem; color: #1a73e8; font-weight: bold; text-align: center; border: 1px solid #c3d4fc; }
+
+        #graphCanvas { width: 100%; height: 300px; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; margin-top: 15px; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <button class="icon-btn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+        <div class="header-icons">
+            <button class="icon-btn" onclick="navTo('converter-menu-view')"><i class="fas fa-exchange-alt"></i></button>
+            <button class="icon-btn" id="mode-btn" onclick="toggleSciMode()"><i class="fas fa-square-root-variable"></i></button>
+            <button class="icon-btn" onclick="navTo('currency-view')"><i class="fas fa-dollar-sign"></i></button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="exit-modal">
+        <div class="modal-box">
+            <i class="fas fa-sign-out-alt" style="font-size:3rem; color:var(--primary); margin-bottom:15px;"></i>
+            <h3 data-i18n="exit-title">অ্যাপ থেকে বের হবেন?</h3>
+            <p data-i18n="exit-desc">আপনি কি নিশ্চিত যে অ্যাপ্লিকেশনটি বন্ধ করতে চান?</p>
+            <div class="modal-btns">
+                <button class="m-btn m-btn-cancel" onclick="closeExitModal()" data-i18n="exit-no">না, বাতিল</button>
+                <button class="m-btn m-btn-exit" onclick="confirmExit()" data-i18n="exit-yes">হ্যাঁ, বের হবো</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+    <div class="sidebar" id="sidebar">
+        <div style="padding: 20px; font-size: 1.3rem; font-weight: bold; color: var(--primary); border-bottom:1px solid var(--border-color);" data-i18n="menu-title">মেনু (Menu)</div>
+        <div class="menu-item" onclick="navTo('calc-view');"><i class="fas fa-calculator"></i> <span data-i18n="menu-calc">মূল ক্যালকুলেটর</span></div>
+        <div class="menu-item" onclick="navTo('formula-view');"><i class="fas fa-book-open"></i> <span data-i18n="menu-form">সূত্র ও উপপাদ্য</span></div>
+        <div class="menu-item" onclick="navTo('geometry-view');"><i class="fas fa-shapes"></i> <span data-i18n="menu-geom">জ্যামিতির চিত্র ও সংজ্ঞা</span></div>
+        <div class="menu-item" onclick="navTo('finance-menu-view');"><i class="fas fa-chart-pie"></i> <span data-i18n="menu-finance">ফাইন্যান্স ও হিসাব</span></div>
+        <div class="menu-item" onclick="navTo('stat-view');"><i class="fas fa-chart-bar"></i> <span data-i18n="menu-stat">পরিসংখ্যান (গড়, মধ্যক)</span></div>
+        <div class="menu-item" onclick="navTo('converter-menu-view');"><i class="fas fa-table-cells"></i> <span data-i18n="menu-tools">অটো কনভার্টার্স ও টুলস</span></div>
+        <div class="menu-item" onclick="navTo('solver-view');"><i class="fas fa-function"></i> <span data-i18n="menu-eq">সমীকরণ সলভার</span></div>
+        <div class="menu-item" onclick="navTo('graph-view');"><i class="fas fa-project-diagram"></i> <span data-i18n="menu-graph">গ্রাফ ক্যালকুলেটর</span></div>
+        <div class="menu-item" onclick="navTo('gpa-view');"><i class="fas fa-graduation-cap"></i> <span data-i18n="menu-gpa">জিপিএ (GPA) নির্ণয়</span></div>
+        <div class="menu-item" onclick="navTo('settings-view');"><i class="fas fa-cog"></i> <span data-i18n="menu-set">সেটিংস ও হিস্টোরি</span></div>
+    </div>
+
+    <div class="view-container active" id="calc-view">
+        <div class="display">
+            <div class="mode-indicator" id="angle-mode">DEG</div>
+            <div class="history-text" id="history"></div>
+            <div class="result-text" id="result">0</div>
+        </div>
+
+        <div class="keypad" id="keypad-standard">
+            <button class="btn txt-blue" onclick="clearAll()">C</button>
+            <button class="btn txt-blue" onclick="appendOp('÷')">÷</button>
+            <button class="btn txt-blue" onclick="appendOp('×')">×</button>
+            <button class="btn txt-blue" onclick="backspace()"><i class="fas fa-backspace"></i></button>
+
+            <button class="btn" onclick="appendNum('7')">7</button>
+            <button class="btn" onclick="appendNum('8')">8</button>
+            <button class="btn" onclick="appendNum('9')">9</button>
+            <button class="btn txt-blue" onclick="appendOp('-')">-</button>
+
+            <button class="btn" onclick="appendNum('4')">4</button>
+            <button class="btn" onclick="appendNum('5')">5</button>
+            <button class="btn" onclick="appendNum('6')">6</button>
+            <button class="btn txt-blue" onclick="appendOp('+')">+</button>
+
+            <button class="btn" onclick="appendNum('1')">1</button>
+            <button class="btn" onclick="appendNum('2')">2</button>
+            <button class="btn" onclick="appendNum('3')">3</button>
+            <button class="btn btn-eq" onclick="calculate()">=</button>
+
+            <button class="btn" onclick="appendOp('%')">%</button>
+            <button class="btn" onclick="appendNum('0')">0</button>
+            <button class="btn" onclick="appendNum('.')">.</button>
+        </div>
+
+        <div class="keypad" id="keypad-scientific">
+            <button class="btn btn-top" onclick="toggleAngle()">DEG/RAD</button>
+            <button class="btn btn-top" onclick="appendOp('!')">x!</button>
+            <button class="btn btn-top" onclick="appendOp('Abs(')">Abs</button>
+            <button class="btn btn-top" onclick="appendOp('mod')">mod</button>
+            <button class="btn btn-top" onclick="convertToFraction()">a/b</button>
+
+            <button class="btn txt-blue" onclick="appendOp('√(')">√</button>
+            <button class="btn txt-blue" onclick="appendOp('²')">x²</button>
+            <button class="btn txt-blue" onclick="appendOp('^')">xʸ</button>
+            <button class="btn txt-blue" onclick="appendOp('log(')">log</button>
+            <button class="btn txt-blue" onclick="appendOp('ln(')">ln</button>
+
+            <button class="btn txt-blue" onclick="appendOp('asin(')">sin⁻¹</button>
+            <button class="btn txt-blue" onclick="appendOp('acos(')">cos⁻¹</button>
+            <button class="btn txt-blue" onclick="appendOp('atan(')">tan⁻¹</button>
+            <button class="btn txt-blue" onclick="appendOp('π')">π</button>
+            <button class="btn txt-blue" onclick="appendOp('e')">e</button>
+
+            <button class="btn txt-blue" onclick="appendOp('sin(')">sin</button>
+            <button class="btn txt-blue" onclick="appendOp('cos(')">cos</button>
+            <button class="btn txt-blue" onclick="appendOp('tan(')">tan</button>
+            <button class="btn txt-blue" onclick="appendOp('(')">(</button>
+            <button class="btn txt-blue" onclick="appendOp(')')">)</button>
+
+            <button class="btn btn-num" onclick="appendNum('7')">7</button>
+            <button class="btn btn-num" onclick="appendNum('8')">8</button>
+            <button class="btn btn-num" onclick="appendNum('9')">9</button>
+            <button class="btn txt-blue" style="background:#fce8e6; color:#d93025; border-color:#fad2cf;" onclick="backspace()">DEL</button>
+            <button class="btn txt-blue" style="background:#fce8e6; color:#d93025; border-color:#fad2cf;" onclick="clearAll()">AC</button>
+
+            <button class="btn btn-num" onclick="appendNum('4')">4</button>
+            <button class="btn btn-num" onclick="appendNum('5')">5</button>
+            <button class="btn btn-num" onclick="appendNum('6')">6</button>
+            <button class="btn txt-blue" onclick="appendOp('×')">×</button>
+            <button class="btn txt-blue" onclick="appendOp('÷')">÷</button>
+
+            <button class="btn btn-num" onclick="appendNum('1')">1</button>
+            <button class="btn btn-num" onclick="appendNum('2')">2</button>
+            <button class="btn btn-num" onclick="appendNum('3')">3</button>
+            <button class="btn txt-blue" onclick="appendOp('+')">+</button>
+            <button class="btn txt-blue" onclick="appendOp('-')">-</button>
+
+            <button class="btn btn-num" onclick="appendNum('0')">0</button>
+            <button class="btn btn-num" onclick="appendNum('.')">.</button>
+            <button class="btn btn-num" onclick="appendOp('EXP')">EXP</button>
+            <button class="btn btn-num" onclick="recallAns()">Ans</button>
+            <button class="btn txt-blue" style="background:var(--primary); color:white; border:none;" onclick="calculate()">=</button>
+        </div>
+    </div>
+
+    <div class="view-container" id="converter-menu-view">
+        <div class="panel-page">
+            <div class="page-header"><button class="icon-btn" onclick="goBack()"><i class="fas fa-arrow-left"></i></button> <span data-i18n="menu-tools">অটো কনভার্টার্স ও টুলস</span></div>
+            <div class="page-content">
+                <div class="grid-menu">
+                    <div class="grid-card" onclick="navTo('num-sys-view')"><i class="fas fa-binary"></i><div data-i18n="tool-num">নাম্বার সিস্টেম</div></div>
+                    <div class="grid-card" onclick="navTo('unit-view')"><i class="fas fa-ruler-combined"></i><div data-i18n="tool-unit">ইউনিট কনভার্টার</div></div>
+                    <div class="grid-card" onclick="navTo('time-view')"><i class="fas fa-clock"></i><div data-i18n="tool-time">সময় (Time)</div></div>
+                    <div class="grid-card" onclick="navTo('data-view')"><i class="fas fa-server"></i><div data-i18n="tool-data">ডেটা (MB/GB)</div></div>
+                    <div class="grid-card" onclick="navTo('zakat-view')"><i class="fas fa-donate"></i><div data-i18n="tool-zakat">যাকাত হিসাব</div></div>
+                    <div class="grid-card" onclick="navTo('lcm-gcd-view')"><i class="fas fa-percentage"></i><div data-i18n="tool-lcm">লসাগু ও গসাগু</div></div>
+                    <div class="grid-card" onclick="navTo('health-view')"><i class="fas fa-heartbeat"></i><div data-i18n="tool-health">স্বাস্থ্য ও BMI</div></div>
+                    <div class="grid-card" onclick="navTo('age-view')"><i class="fas fa-calendar-day"></i><div data-i18n="tool-age">বয়স ক্যালকুলেটর</div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="view-container" id="finance-menu-view">
+        <div class="panel-page">
+            <div class="page-header"><button class="icon-btn" onclick="goBack()"><i class="fas fa-arrow-left"></i></button> <span data-i18n="menu-finance">ফাইন্যান্স ও হিসাব</span></div>
+            <div class="page-content">
+                <div class="grid-menu">
+                    <div class="grid-card" onclick="navTo('emi-view')"><i class="fas fa-home"></i><div data-i18n="tool-emi">EMI / Loan</div></div>
+                    <div class="grid-card" onclick="navTo('profit-loss-view')"><i class="fas fa-chart-line"></i><div data-i18n="tool-pl">লাভ - ক্ষতি</div></div>
+                    <div class="grid-card" onclick="navTo('vat-view')"><i class="fas fa-receipt"></i><div data-i18n="tool-vat">VAT / Tax</div></div>
+                    <div class="grid-card" onclick="navTo('discount-view')"><i class="fas fa-tags"></i><div data-i18n="tool-disc">ডিসকাউন্ট</div></div>
+                    <div class="grid-card" onclick="navTo('compound-view')"><i class="fas fa-chart-area"></i><div data-i18n="tool-ci">চক্রবৃদ্ধি সুদ</div></div>
+                    <div class="grid-card" onclick="navTo('savings-view')"><i class="fas fa-piggy-bank"></i><div data-i18n="tool-sg">সঞ্চয়ের লক্ষ্য</div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="view-container" id="emi-view">
+        <div class="panel-page">
+            <div class="page-header"><button class="icon-btn" onclick="goBack()"><i class="fas fa-arrow-left"></i></button> <span data-i18n="tool-emi">EMI / Loan Calculator</span></div>
+            <div class="page-content">
+                <div class="form-group"><label data-i18n="lbl-prin">লোনের পরিমাণ (Principal)</label><input type="number" id="emi-p" class="form-control"></div>
+                <div class="form-group"><label data-i18n="lbl-rate">বার্ষিক সুদের হার (Interest Rate %)</label><input type="number" id="emi-r" class="form-control"></div>
+                <div class="form-group"><label data-i18n="lbl-month">সময়কাল (Months / মাস)</label><input type="number" id="emi-m" class="form-control"></div>
+                <button class="btn-action" onclick="calcEMI()" data-i18n="btn-calc">হিসাব করুন</button>
+                
+                <div class="form-group" style="margin-top:20px;"><label data-i18n="lbl-emi">মাসিক কিস্তি (Monthly EMI)</label><input type="text" id="emi-res" class="form-control" readonly style="font-weight:bold; color:var(--primary); font-size:1.3rem; text-align:center;"></div>
+                
+                <div style="display:flex; gap:10px; margin-top:15px;">
+                    <div class="form-group" style="flex:1;"><label data-i18n="lbl-tinterest">মোট সুদ</label><input type="text" id="emi-int" class="form-control" readonly style="color:#d93025; font-weight:bold;"></div>
+                    <div class="form-group" style="flex:1;"><label data-i18n="lbl-tpay">সর্বমোট পরিশোধ</label><input type="text" id="emi-total" class="form-control" readonly style="color:var(--primary); font-weight:bold;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="view-container" id="profit-loss-view"><div class="panel-page"><div class="page-header"><button class="icon-btn" onclick="goBack()"><i class="fas fa-arrow-left"></i></button> <span data-i18n="tool-pl">লাভ-ক্ষতি (Profit-Loss)</span></div><div class="page-content"><div class="form-group"><label data-i18n="lbl-cp">ক্রয়মূল্য (Cost Price)</label><input type="number" id="pl-cp" class="form-control"></div><div class="form-group"><label data-i18n="lbl-sp">বিক্রয়মূল্য (Selling Price)</label><input type="number" id="pl-sp" class="form-control"></div><button class="btn-action" onclick="calcProfitLoss()" data-i18n="btn-calc">হিসাব করুন</button><div class="form-group" style="margin-top:20px;"><label data-i18n="lbl-res">ফলাফল</label><input type="text" id="pl-res" class="form-control" readonly style="font-weight:bold;"></div></div></div></div>
+    <div class="view-container" id="vat-view"><div class="panel-page"><div class="page-header"><button class="icon-btn" onclick="goBack()"><i class="fas fa-arrow-left"></i></button> <span data-i18n="tool-vat">VAT / Tax Calculator</span></div><div class="page-content"><div class="form-group"><label data-i18n="lbl-amt">মূল টাকার পরিমাণ (Amount)</label><input type="number" id="vat-amt" class="form-control"></div><div class="form-group"><label data-i18n="lbl-vrate">ভ্যাট/ট্যাক্স হার (%)</label><input type="number" id="vat-rate" class="form-control" value="15"></div><button class="btn-action" onclick="calcVat(true)" data-i18n="btn-vadd">ভ্যাট যোগ করুন (Add VAT)</button><button class="btn-action" style="background:var(--sidebar-bg); color:var(--text-color); border:1px solid var(--border-color);" onclick="calcVat(false)" data-i18n="btn-vrem">ভ্যাট বাদ দিন (Remove VAT)</button><div class="form-group" style="margin-top:20px;"><label data-i18n="lbl-famt">চূড়ান্ত পরিমাণ</label><input type="text" id="vat-res" class="form-control" readonly style="font-weight:bold; color:var(--primary);"></div></div></div></div>
+    <div class="view-container" id="discount-view"><div class="panel-page"><div class="page-header"><button class="icon-btn" onclick="goBack()"><i class="fas fa-arrow-left"></i></button> <span data-i18n="tool-disc">ডিসকাউন্ট (Discount)</span></div><div class="page-content"><div class="form-group"><label data-i18n="lbl-oprice">আসল দাম (Original Price)</label><input type="number" id="disc-amt" class="form-control"></div><div class="form-group"><label data-i18n="lbl-drate">ছাড়ের পরিমাণ (%)</label><input type="number" id="disc-rate" class="form-control"></div><button class="btn-action" onclick="calcDiscount()" data-i18n="btn-calc">হিসাব করুন</button><div style="display:flex; gap:10px; margin-top:20px;"><div class="form-group" style="flex:1;"><label data-i18n="lbl-dsave">ছাড়ের টাকা</label><input type="text" id="disc-save" class="form-control" readonly style="color:#d93025; font-weight:bold;"></div><div class="form-group" style="flex:1;"><label data-i18n="lbl-nprice">বর্তমান দাম</label><input type="text" id="disc-final" class="form-control" readonly style="color:var(--primary); font-weight:bold;"></div></div></div></div></div>
+    <div class="view-container" id="compound-view"><div class="panel-page"><div class="page-header"><button class="icon-btn" onclick="goBack()"><i class="fas fa-arrow-left"></i></button> <span data-i18n="tool-ci">চক্রবৃদ্ধি সুদ (Compound Int.)</span></div><div class="page-content"><div class="form-group"><label data-i18n="lbl-prin">আসল টাকা (Principal)</label><input type="number" id="ci-p" class="form-control"></div><div class="form-group"><label data-i18n="lbl-rate">সুদের হার (%)</label><input type="number" id="ci-r" class="form-control"></div><div class="form-group"><label data-i18n="lbl-year">সময় (Years)</label><input type="number" id="ci-t" class="form-control"></div><button class="btn-action" onclick="calcCompound()" data-i18n="btn-calc">হিসাব করুন</button><div class="form-group" style="margin-top:20px;"><label data-i18n="lbl-tamt">সবৃদ্ধিমূল (Total Amount)</label><input type="text" id="ci-res" class="form-control" readonly style="font-weight:bold; color:var(--primary);"></div></div></div></div>
+    <div class="view-container" id="savings-view"><div class="panel-page"><div class="page-header"><button class="icon-btn" onclick="goBack()"><i class="fas fa-arrow-left"></i></button> <span data-i18n="tool-sg">সঞ্চয়ের লক্ষ্য (Savings Goal)</span></div><div class="page-content"><div class="form-group"><label data-i18n="lbl-goal">লক্ষ্যমাত্রা (Goal Amount)</label><input type="number" id="sg-goal" class="form-control"></div><div class="form-group"><label data-i18n="lbl-month">সময়কাল (Months)</label><input type="number" id="sg-months" class="form-control"></div><button class="btn-action" onclick="calcSavings()" data-i18n="btn-calc">হিসাব করুন</button><div class="form-group" style="margin-top:20px;"><label data-i18n="lbl-sgpm">প্রতি মাসে জমা করতে হবে</label><input type="text" id="sg-res" class="form-control" readonly style="font-weight:bold; color:var(--primary);"></div></div></div></div>
+
+    <div class="view-container" id="graph-view">
+        <div class="panel-page">
+            <div class="page-header"><button class="icon-btn" onclick="goBack()"><i class="fas fa-arrow-left"></i></button> <span data-i18n="menu-graph">গ্রাফ ক্যালকুলেটর</span></div>
+            <div class="page-content">
+                <div class="form-group">
+                    <label data-i18n="lbl-grapheq">সমীকরণ লিখুন (e.g., sin(x), x^2, 2*x + 3)</label>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <span style="font-weight:bold; font-size:1.2rem; color:var(--primary);">y =</span>
+                        <input type="text" id="graph-eq" class="form-control" placeholder="sin(x)" value="sin(x)">
+                    </div>
+                </div>
+                <button class="btn-action" onclick="plotGraph()" data-i18n="btn-plot">গ্রাফ আঁকুন (Plot)</button>
+                <canvas id="graphCanvas" width="400" height="400"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="view-container" id="num-sys-view">
+        <div class="panel-page">
+            <div class="page-header"><button class="icon-btn" onclick="goBack()"><i class="fas fa-arrow-left"></i></button> <span data-i18n="tool-num">সংখ্যা পদ্ধতি</span></div>
+            <div class="page-content">
+                <div class="form-group"><label data-i18n="lbl-dec">Decimal (ডেসিমাল)</label><input type="text" id="num-dec" class="form-control" oninput="convertNum(this.value, 'dec')"></div>
+                <div class="form-group"><label data-i18n="lbl-rom">Roman (রোমান সংখ্যা)</label><input type="text" id="num-rom" class="form-control" oninput="convertRoman(this.value)" placeholder="যেমন: XIV, MCMXC"></div>
+                <div class="form-group"><label data-i18n="lbl-bin">Binary (বাইনারি)</label><input type="text" id="num-bin" class="form-control" oninput="convertNum(this.value, 'bin')"></div>
+                <div class="form-group"><label data-i18n="lbl-oct">Octal (অক্টাল)</label><input type="text" id="num-oct" class="form-control" oninput="convertNum(this.value, 'oct')"></div>
+                <div class="form-group"><label data-i18n="lbl-hex">Hexadecimal (হেক্স)</label><input type="text" id="num-hex" class="form-control" oninput="convertNum(this.value, 'hex')"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="view-container" id="unit-view">
+        <div class="panel-page">
+            <div class="page-header"><button class="icon-btn" onclick="goBack()"><i class="fas fa-arrow-left"></i></button> <span data-i18n="tool-unit">ইউনিট রূপান্তর</span></div>
+            <div class="page-content">
+                <div class="form-group"><label data-i18n="lbl-cat">ক্যাটাগরি</label>
+                    <select id="uc-category" class="form-control" onchange="updateUnitOptions()">
+                        <option value="length" data-i18n="cat-len">দৈর্ঘ্য (Length)</option>
+                        <option value="weight" data-i18n="cat-wgt">ওজন (Weight/Mass)</option>
+                        <option value="temp" data-i18n="cat-tmp">তাপমাত্রা (Temperature)</option>
+                        <option value="area" data-i18n="cat-ara">ক্ষেত্রফল (Area)</option>
+                        <option value="volume" data-i18n="cat-vol">আয়তন (Volume)</option>
+                        <option value="speed" data-i18n="cat-spd">গতি (Speed)</option>
+                        <option value="pressure" data-i18n="cat-pre">চাপ (Pressure)</option>
+                        <option value="energy" data-i18n="cat-eng">শক্তি (Energy)</option>
+                        <option value="power" data-i18n="cat-pwr">ক্ষমতা (Power)</option>
+                    </select>
+                </div>
+                <div class="form-group"><label data-i18n="lbl-from">From</label><select id="uc-from" class="form-control" onchange="autoConvertUnit()"></select>
+                    <input type="number" id="uc-input" class="form-control" placeholder="Value" style="margin-top:10px;" oninput="autoConvertUnit()">
+                </div>
+                <div class="form-group"><label data-i18n="lbl-to">To</label><select id="uc-to" class="form-control" onchange="autoConvertUnit()"></select>
+                    <input type="text" id="uc-output" class="form-control" readonly style="margin-top:10px; background:var(--btn-bg); color:var(--primary); font-weight:bold;">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="view-container" id="time-view">
+        <div class="panel-page">
+            <div class="page-header"><button class="icon-btn" onclick="goBack()"><i class="fas fa-arrow-left"></i></button> <span data-i18n="tool-time">টাইম কনভার্টার</span></div>
+            <div class="page-content">
+                <div class="form-group"><label data-i18n="lbl-tyear">বছর (Year)</label><input type="number" id="tc-yr" class="form-control" oninput="calcTime(this.value, 'yr')"></div>
+                <div class="form-group"><label data-i18n="lbl-tmonth">মাস (Month)</label><input type="number" id="tc-mo" class="form-control" oninput="calcTime(this.value, 'mo')"></div>
+                <div class="form-group"><label data-i18n="lbl-tweek">সপ্তাহ (Week)</label><input type="number" id="tc-wk" class="form-control" oninput="calcTime(this.value, 'wk')"></div>
+                <div class="form-group"><label data-i18n="lbl-tday">দিন (Day)</label><input type="number" id="tc-d" class="form-control" oninput="calcTime(this.value, 'd')"></div>
+                <div class="form-group"><label data-i18n="lbl-thour">ঘণ্টা (Hour)</label><input type="number" id="tc-h" class="form-control" oninput="calcTime(this.value, 'h')"></div>
+                <div class="form-group"><label data-i18n="lbl-tmin">মিনিট (Minute)</label><input type="number" id="tc-m" class="form-control" oninput="calcTime(this.value, 'm')"></div>
+                <div class="form-group"><label data-i18n="lbl-tsec">সেকেন্ড (Second)</label><input type="number" id="tc-s" class="form-control" oninput="calcTime(this.value, 's')"></div>
+                
+                <div class="info-text">
+                    <b style="color:var(--primary);" data-i18n="txt-t-know">জেনে রাখুন (সাধারণ তথ্য):</b><br>
+                    <span data-i18n="txt-t-cen">• ১ শতাব্দী = ১০০ বছর</span><br>
+                    <span data-i18n="txt-t-yug">• ১ যুগ = ১২ বছর</span><br>
+                    <span data-i18n="txt-t-yr">• ১ বছর = ১২ মাস বা ৩৬৫ দিন</span><br>
+                    <span data-i18n="txt-t-wk">• ১ সপ্তাহ = ৭ দিন</span><br>
+                    <span data-i18n="txt-t-day">• ১ দিন = ২৪ ঘণ্টা</span><br>
+                    <span data-i18n="txt-t-hr">• ১ ঘণ্টা = ৬০ মিনিট</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="view-container" id="data-view">
+        <div class="panel-page">
+            <div class="page-header"><button class="icon-btn" onclick="goBack()"><i class="fas fa-arrow-left"></i></button> <span data-i18n="tool-data">ডেটা কনভার্টার</span></div>
+            <div class="page-content">
+                <div class="form-group"><label data-i18n="lbl-dtb">TB (টেরাবাইট)</label><input type="number" id="dt-tb" class="form-control" oninput="calcData(this.value, 'tb')"></div>
+                <div class="form-group"><label data-i18n="lbl-dgb">GB (গিগাবাইট)</label><input type="number" id="dt-gb" class="form-control" oninput="calcData(this.value, 'gb')"></div>
+                <div class="form-group"><label data-i18n="lbl-dmb">MB (মেগাবাইট)</label><input type="number" id="dt-mb" class="form-control" oninput="calcData(this.value, 'mb')"></div>
+                <div class="form-group"><label data-i18n="lbl-dkb">KB (কিলোবাইট)</label><input type="number" id="dt-kb" class="form-control" oninput="calcData(this.value, 'kb')"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="view-container" id="zakat-view">
+        <div class="panel-page">
+            <div class="page-header"><button class="icon-btn" onclick="goBack()"><i class="fas fa-arrow-left"></i></button> <span data-i18n="tool-zakat">যাকাত হিসাব</span></div>
+            <div class="page-content">
+                <div class="info-text" style="background:#e8f0fe; border-color:#8ab4f8; color:#1a73e8; font-style:italic;" data-i18n="txt-zakat-hadith">
+                    <b>হাদিস:</b> "যে ব্যক্তিকে আল্লাহ সম্পদ দিয়েছেন, কিন্তু সে তার যাকাত আদায় করেনি, কিয়ামতের দিন তা একটি বিষধর সাপে পরিণত হয়ে তাকে দংশন করবে।"<br>— (সহীহ বুখারী: ১৪০৩)
+                </div>
+                <div class="info-text" style="margin-top:15px;" data-i18n="txt-zakat-rule">
+                    <b style="color:var(--primary);">যাকাতের বাধ্যতামূলক নিয়ম:</b><br>১. সম্পদ আপনার কাছে পূর্ণ এক চান্দ্র বছর (৩৫৪ দিন) থাকতে হবে।<br>২. মোট সম্পদ নিসাবের (সাড়ে ৭ ভরি সোনা বা বাউয়ান্ন ভরি রুপার সমমূল্য) সমান বা বেশি হতে হবে।
+                </div>
+                <div class="form-group" style="background:var(--sidebar-bg); padding:10px; border-radius:8px; border:1px solid var(--border-color); margin-top:15px;">
+                    <label style="display:flex; align-items:center; gap:10px; cursor:pointer; color:var(--text-color); margin:0;">
+                        <input type="checkbox" id="zak-year-check" style="width:20px; height:20px; accent-color:var(--primary);" checked> 
+                        <span data-i18n="lbl-zakat-yr">সম্পদ পূর্ণ এক বছর ছিল</span>
+                    </label>
+                </div>
+                <div class="form-group"><label data-i18n="lbl-nisab">বর্তমান নিসাবের পরিমাণ (টাকায়)</label><input type="number" id="zak-nisab" class="form-control" value="80000"></div>
+                <div style="border-top:2px dashed var(--border-color); margin:20px 0;"></div>
+                <div class="form-group"><label data-i18n="lbl-zcash">নগদ অর্থ ও ব্যাংকে জমা</label><input type="number" id="zak-cash" class="form-control" value="0"></div>
+                <div class="form-group"><label data-i18n="lbl-zgold">সোনার বর্তমান মূল্য</label><input type="number" id="zak-gold" class="form-control" value="0"></div>
+                <div class="form-group"><label data-i18n="lbl-zsilver">রূপার বর্তমান মূল্য</label><input type="number" id="zak-silver" class="form-control" value="0"></div>
+                <div class="form-group"><label data-i18n="lbl-zbiz">ব্যবসার সম্পদ/বিনিয়োগ</label><input type="number" id="zak-biz" class="form-control" value="0"></div>
+                <div class="form-group"><label data-i18n="lbl-zdebt">ঋণ বা ধার (বিয়োগ হবে)</label><input type="number" id="zak-debt" class="form-control" value="0" style="color:#d93025; border-color:#fad2cf;"></div>
+                <button class="btn-action" onclick="calcZakat()" data-i18n="btn-calc">যাকাত হিসাব করুন</button>
+                <div class="form-group" style="margin-top:20px;"><label data-i18n="lbl-zres">সর্বমোট প্রদেয় যাকাত (২.৫%)</label><input type="text" id="zak-res" class="form-control" readonly style="background:var(--btn-bg); font-weight:bold; color:var(--primary); font-size:1.3rem; text-align:center;"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="view-container" id="lcm-gcd-view">
+        <div class="panel-page">
+            <div class="page-header"><button class="icon-btn" onclick="goBack()"><i class="fas fa-arrow-left"></i></button> <span data-i18n="tool-lcm">লসাগু ও গসাগু</span></div>
+            <div class="page-content">
+                <div class="form-group"><label data-i18n="lbl-linput">সংখ্যাগুলো (কমা দিয়ে লিখুন)</label><input type="text" id="lg-input" class="form-control" placeholder="e.g. 12, 15, 20"></div>
+                <button class="btn-action" onclick="calcLcmGcd()" data-i18n="btn-calc">নির্ণয় করুন</button>
+                <div style="display:flex; gap:10px; margin-top:20px;">
+                    <div class="form-group" style="flex:1;"><label>লসাগু (LCM)</label><input type="text" id="lg-lcm" class="form-control" readonly style="font-weight:bold; color:var(--primary);"></div>
+                    <div class="form-group" style="flex:1;"><label>গসাগু (GCD)</label><input type="text" id="lg-gcd" class="form-control" readonly style="font-weight:bold; color:#d93025;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="view-container" id="currency-view">
+        <div class="panel-page">
+            <div class="page-header"><button class="icon-btn" onclick="goBack()"><i class="fas fa-arrow-left"></i></button> <span data-i18n="menu-curr">কারেন্সি (Currency)</span></div>
+            <div class="page-content">
+                <div class="form-group"><label data-i18n="lbl-amt">পরিমাণ (Amount)</label><input type="number" id="curr-amt" class="form-control" value="1" oninput="convertCurr()"></div>
+                <div class="form-group"><label data-i18n="lbl-from">From</label>
+                    <select id="curr-from" class="form-control" onchange="convertCurr()">
+                        <option value="USD">🇺🇸 USD (মার্কিন ডলার)</option><option value="BDT" selected>🇧🇩 BDT (বাংলাদেশী টাকা)</option>
+                        <option value="INR">🇮🇳 INR (ভারতীয় রুপি)</option><option value="EUR">🇪🇺 EUR (ইউরো)</option>
+                        <option value="SAR">🇸🇦 SAR (সৌদি রিয়াল)</option><option value="GBP">🇬🇧 GBP (ব্রিটিশ পাউন্ড)</option>
+                        <option value="AED">🇦🇪 AED (আমিরাতি দিরহাম)</option><option value="CAD">🇨🇦 CAD (কানাডিয়ান ডলার)</option>
+                        <option value="AUD">🇦🇺 AUD (অস্ট্রেলিয়ান ডলার)</option><option value="SGD">🇸🇬 SGD (সিঙ্গাপুর ডলার)</option>
+                        <option value="MYR">🇲🇾 MYR (মালয়েশিয়ান রিঙ্গিত)</option><option value="JPY">🇯🇵 JPY (জাপানি ইয়েন)</option>
+                        <option value="CNY">🇨🇳 CNY (চীনা ইউয়ান)</option><option value="QAR">🇶🇦 QAR (কাতারি রিয়াল)</option>
+                        <option value="KWD">🇰🇼 KWD (কুয়েতি দিনার)</option><option value="OMR">🇴🇲 OMR (ওমানি রিয়াল)</option>
+                        <option value="BHD">🇧🇭 BHD (বাহরাইনি দিনার)</option><option value="PKR">🇵🇰 PKR (পাকিস্তানি রুপি)</option>
+                        <option value="ZAR">🇿🇦 ZAR (সাউথ আফ্রিকান রান্ড)</option><option value="LKR">🇱🇰 LKR (শ্রীলঙ্কান রুপি)</option>
+                        <option value="NPR">🇱🇰 NPR (নেপালি রুপি)</option><option value="RUB">🇷🇺 RUB (রাশিয়ান রুবেল)</option>
+                        <option value="KRW">🇰🇷 KRW (দক্ষিণ কোরিয়ান ওন)</option><option value="BRL">🇧🇷 BRL (ব্রাজিলিয়ান রিয়াল)</option>
+                        <option value="TRY">🇹🇷 TRY (তুর্কি লিরা)</option>
+                    </select>
+                </div>
+                <div class="form-group"><label data-i18n="lbl-to">To</label>
+                    <select id="curr-to" class="form-control" onchange="convertCurr()">
+                        <option value="USD" selected>🇺🇸 USD (মার্কিন ডলার)</option><option value="BDT">🇧🇩 BDT (বাংলাদেশী টাকা)</option>
+                        <option value="INR">🇮🇳 INR (ভারতীয় রুপি)</option><option value="EUR">🇪🇺 EUR (ইউরো)</option>
+                        <option value="SAR">🇸🇦 SAR (সৌদি রিয়াল)</option><option value="GBP">🇬🇧 GBP (ব্রিটিশ পাউন্ড)</option>
+                        <option value="AED">🇦🇪 AED (আমিরাতি দিরহাম)</option><option value="CAD">🇨🇦 CAD (কানাডিয়ান ডলার)</option>
+                        <option value="AUD">🇦🇺 AUD (অস্ট্রেলিয়ান ডলার)</option><option value="SGD">🇸🇬 SGD (সিঙ্গাপুর ডলার)</option>
+                        <option value="MYR">🇲🇾 MYR (মালয়েশিয়ান রিঙ্গিত)</option><option value="JPY">🇯🇵 JPY (জাপানি ইয়েন)</option>
+                        <option value="CNY">🇨🇳 CNY (চীনা ইউয়ান)</option><option value="QAR">🇶🇦 QAR (কাতারি রিয়াল)</option>
+                        <option value="KWD">🇰🇼 KWD (কুয়েতি দিনার)</option><option value="OMR">🇴🇲 OMR (ওমানি রিয়াল)</option>
+                        <option value="BHD">🇧🇭 BHD (বাহরাইনি দিনার)</option><option value="PKR">🇵🇰 PKR (পাকিস্তানি রুপি)</option>
+                        <option value="ZAR">🇿🇦 ZAR (সাউথ আফ্রিকান রান্ড)</option><option value="LKR">🇱🇰 LKR (শ্রীলঙ্কান রুপি)</option>
+                        <option value="NPR">🇱🇰 NPR (নেপালি রুপি)</option><option value="RUB">🇷🇺 RUB (রাশিয়ান রুবেল)</option>
+                        <option value="KRW">🇰🇷 KRW (দক্ষিণ কোরিয়ান ওন)</option><option value="BRL">🇧🇷 BRL (ব্রাজিলিয়ান রিয়াল)</option>
+                        <option value="TRY">🇹🇷 TRY (তুর্কি লিরা)</option>
+                    </select>
+                </div>
+                <div class="form-group"><label data-i18n="lbl-res">ফলাফল</label><input type="text" id="curr-res" class="form-control" readonly style="background:var(--btn-bg); color:var(--primary); font-weight:bold; font-size:1.5rem;"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="view-container" id="health-view">
+        <div class="panel-page">
+            <div class="page-header"><button class="icon-btn" onclick="goBack()"><i class="fas fa-arrow-left"></i></button> <span data-i18n="tool-health">স্বাস্থ্য ও BMI</span></div>
+            <div class="page-content">
+                <div class="form-group"><label data-i18n="lbl-weight">ওজন (কেজি - KG)</label><input type="number" id="bmi-kg" class="form-control"></div>
+                <div style="display:flex; gap:10px;">
+                    <div class="form-group" style="flex:1;"><label data-i18n="lbl-hft">উচ্চতা (ফুট)</label><input type="number" id="bmi-ft" class="form-control"></div>
+                    <div class="form-group" style="flex:1;"><label data-i18n="lbl-hin">উচ্চতা (ইঞ্চি)</label><input type="number" id="bmi-in" class="form-control"></div>
+                </div>
+                <button class="btn-action" onclick="calcBMI()" data-i18n="btn-calc">চেক করুন</button>
+                <div class="form-group" style="margin-top:20px;"><label data-i18n="lbl-res">BMI ফলাফল</label><input type="text" id="bmi-res" class="form-control" readonly style="font-weight:bold; text-align:center; font-size:1.3rem;"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="view-container" id="age-view">
+        <div class="panel-page">
+            <div class="page-header"><button class="icon-btn" onclick="goBack()"><i class="fas fa-arrow-left"></i></button> <span data-i18n="tool-age">বয়স ক্যালকুলেটর</span></div>
+            <div class="page-content">
+                <div class="form-group"><label data-i18n="lbl-bdate">জন্মতারিখ</label><input type="date" id="birth-date" class="form-control" onchange="calcAge()"></div>
+                <div class="form-group"><label data-i18n="lbl-res">বর্তমান বয়স</label><input type="text" id="age-res" class="form-control" readonly style="color:var(--primary); font-weight:bold; text-align:center;"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="view-container" id="solver-view">
+        <div class="panel-page">
+            <div class="page-header"><button class="icon-btn" onclick="goBack()"><i class="fas fa-arrow-left"></i></button> <span data-i18n="menu-eq">সমীকরণ সলভার</span></div>
+            <div class="page-content">
+                <div class="form-group">
+                    <label data-i18n="lbl-eqtype">সমীকরণের ধরন নির্বাচন করুন</label>
+                    <select id="eq-type" class="form-control" onchange="changeEqType()">
+                        <option value="quad" data-i18n="eq-quad">ax² + bx + c = 0 (দ্বিঘাত সমীকরণ)</option>
+                        <option value="lin" data-i18n="eq-lin">ax + b = 0 (একঘাত সমীকরণ)</option>
+                        <option value="lin2" data-i18n="eq-lin2">a₁x+b₁y=c₁ ও a₂x+b₂y=c₂ (দুই চলক)</option>
+                    </select>
+                </div>
+                <div id="eq-inputs-container"></div>
+                <button class="btn-action" onclick="solveEq()" data-i18n="btn-calc">সমাধান করুন</button>
+                <div class="form-group" style="margin-top:20px;"><label data-i18n="lbl-res">ফলাফল</label><input type="text" id="eq-res" class="form-control" readonly style="background:var(--btn-bg); font-weight:bold; color:var(--primary);"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="view-container" id="gpa-view">
+        <div class="panel-page">
+            <div class="page-header"><button class="icon-btn" onclick="goBack()"><i class="fas fa-arrow-left"></i></button> <span data-i18n="menu-gpa">জিপিএ (GPA) নির্ণয়</span></div>
+            <div class="page-content">
+                <div class="gpa-helper">
+                    <div style="flex:2;" data-i18n="lbl-cname">কোর্সের নাম</div>
+                    <div style="flex:2;" data-i18n="lbl-cgrade">গ্রেড</div>
+                    <div style="flex:1;" data-i18n="lbl-ccred">ক্রেডিট</div>
+                    <div style="flex:0.4; min-width:30px;"></div>
+                </div>
+
+                <div id="gpa-rows"></div>
+                
+                <button class="btn-action" style="background:var(--sidebar-bg); color:var(--text-color); border:1px dashed var(--primary);" onclick="addGpaRow()" data-i18n="btn-addrow">+ বিষয় যোগ করুন</button>
+                <div class="form-group" style="margin-top:25px;"><label data-i18n="lbl-cgpa">সর্বমোট CGPA</label><input type="text" id="gpa-result" class="form-control" readonly style="font-weight:bold; color:var(--primary); font-size:1.8rem; text-align:center; border:2px solid var(--primary);"></div>
+                <button class="btn-action" onclick="calculateGPA()" data-i18n="btn-calc">হিসাব করুন</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="view-container" id="stat-view">
+        <div class="panel-page">
+            <div class="page-header"><button class="icon-btn" onclick="goBack()"><i class="fas fa-arrow-left"></i></button> <span data-i18n="menu-stat">পরিসংখ্যান (গড়, মধ্যক)</span></div>
+            <div class="page-content">
+                <div class="form-group"><label data-i18n="lbl-sdata">উপাত্ত (কমা দিয়ে লিখুন)</label><input type="text" id="stat-input" class="form-control" placeholder="e.g. 10, 15, 10, 20"></div>
+                <button class="btn-action" onclick="calcStat()" data-i18n="btn-calc">হিসাব করুন</button>
+                <div style="display:flex; gap:10px; margin-top:20px;">
+                    <div class="form-group" style="flex:1;"><label data-i18n="lbl-mean">গড় (Mean)</label><input type="text" id="stat-mean" class="form-control" readonly style="font-weight:bold; color:var(--primary);"></div>
+                    <div class="form-group" style="flex:1;"><label data-i18n="lbl-median">মধ্যক (Median)</label><input type="text" id="stat-median" class="form-control" readonly style="font-weight:bold;"></div>
+                </div>
+                <div class="form-group"><label data-i18n="lbl-mode">প্রচুরক (Mode)</label><input type="text" id="stat-mode" class="form-control" readonly style="font-weight:bold;"></div>
+                
+                <div class="info-text" style="margin-top:20px; font-size:0.95rem;" data-i18n="txt-stat-rule">
+                    <b>সূত্রাবলি:</b><br>
+                    • গড় = উপাত্তসমূহের সমষ্টি ÷ উপাত্তের সংখ্যা<br>
+                    • মধ্যক = ক্রমানুসারে সাজানোর পর মাঝের মান<br>
+                    • প্রচুরক = সর্বাধিক বার থাকা সংখ্যা
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="view-container" id="geometry-view">
+        <div class="panel-page">
+            <div class="page-header"><button class="icon-btn" onclick="goBack()"><i class="fas fa-arrow-left"></i></button> <span data-i18n="menu-geom">জ্যামিতির চিত্র ও সংজ্ঞা</span></div>
+            <div class="page-content">
+                <div class="geom-card"><span class="shape-icon">△</span><h3 style="color:var(--primary);" data-i18n="geo-t1">ত্রিভুজ (Triangle)</h3><p data-i18n="geo-t2"><b>সংজ্ঞা:</b> তিনটি রেখাংশ দ্বারা আবদ্ধ চিত্র।<br><b>বৈশিষ্ট্য:</b> ৩টি কোণের সমষ্টি ১৮০°। ক্ষেত্রফল = ½ × ভূমি × উচ্চতা।</p></div>
+                <div class="geom-card"><span class="shape-icon">◻</span><h3 style="color:var(--primary);" data-i18n="geo-s1">বর্গক্ষেত্র (Square)</h3><p data-i18n="geo-s2"><b>সংজ্ঞা:</b> যে চতুর্ভুজের ৪টি বাহু সমান এবং কোণগুলো সমকোণ।<br><b>বৈশিষ্ট্য:</b> কর্ণদ্বয় সমান। ক্ষেত্রফল = (বাহু)²</p></div>
+                <div class="geom-card"><span class="shape-icon" style="transform: scaleX(1.5); display:inline-block;">◻</span><h3 style="color:var(--primary);" data-i18n="geo-r1">আয়তক্ষেত্র (Rectangle)</h3><p data-i18n="geo-r2"><b>সংজ্ঞা:</b> বিপরীত বাহুগুলো সমান ও সমান্তরাল এবং কোণগুলো সমকোণ।<br><b>বৈশিষ্ট্য:</b> ক্ষেত্রফল = দৈর্ঘ্য × প্রস্থ।</p></div>
+                <div class="geom-card"><span class="shape-icon">▱</span><h3 style="color:var(--primary);" data-i18n="geo-p1">সামান্তরিক (Parallelogram)</h3><p data-i18n="geo-p2"><b>সংজ্ঞা:</b> বিপরীত বাহুগুলো সমান্তরাল কিন্তু কোণ সমকোণ নয়।<br><b>বৈশিষ্ট্য:</b> ক্ষেত্রফল = ভূমি × উচ্চতা।</p></div>
+                <div class="geom-card"><span class="shape-icon">◇</span><h3 style="color:var(--primary);" data-i18n="geo-rh1">রম্বস (Rhombus)</h3><p data-i18n="geo-rh2"><b>সংজ্ঞা:</b> ৪টি বাহুই সমান কিন্তু কোণ সমকোণ নয়।<br><b>বৈশিষ্ট্য:</b> ক্ষেত্রফল = ½ × (কর্ণদ্বয়ের গুণফল)।</p></div>
+                <div class="geom-card"><span class="shape-icon">⏢</span><h3 style="color:var(--primary);" data-i18n="geo-tr1">ট্রাপিজিয়াম (Trapezium)</h3><p data-i18n="geo-tr2"><b>সংজ্ঞা:</b> যে চতুর্ভুজের একজোড়া বিপরীত বাহু সমান্তরাল।<br><b>বৈশিষ্ট্য:</b> ক্ষেত্রফল = ½ × (সমান্তরাল বাহুদ্বয়ের যোগফল) × উচ্চতা।</p></div>
+                <div class="geom-card"><span class="shape-icon">◯</span><h3 style="color:var(--primary);" data-i18n="geo-c1">বৃত্ত (Circle)</h3><p data-i18n="geo-c2"><b>সংজ্ঞা:</b> একটি নির্দিষ্ট বিন্দু থেকে সমদূরত্ব বজায় রেখে আবদ্ধ বক্ররেখা।<br><b>বৈশিষ্ট্য:</b> ক্ষেত্রফল = πr²। পরিধি = 2πr।</p></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="view-container" id="formula-view">
+        <div class="panel-page">
+            <div class="page-header"><button class="icon-btn" onclick="goBack()"><i class="fas fa-arrow-left"></i></button> <span data-i18n="menu-form">সকল সূত্র ও উপপাদ্য</span></div>
+            <div class="page-content">
+                <div class="formula-box">
+                    <div class="f-title" data-i18n="fm-t1">১. পাটিগণিত (Arithmetic)</div>
+                    <ul class="formula-list" data-i18n="fm-d1">
+                        <li><strong>সরল মুনাফা:</strong> I = prn</li><li><strong>চক্রবৃদ্ধি মুনাফা:</strong> C = p(1 + r)ⁿ</li><li><strong>লাভ:</strong> বিক্রয়মূল্য - ক্রয়মূল্য</li><li><strong>ক্ষতি:</strong> ক্রয়মূল্য - বিক্রয়মূল্য</li><li><strong>শতকরা লাভ:</strong> (লাভ / ক্রয়মূল্য) × ১০০%</li><li><strong>শতকরা ক্ষতি:</strong> (ক্ষতি / ক্রয়মূল্য) × ১০০%</li><li><strong>ঐকিক নিয়ম:</strong> M₁D₁ = M₂D₂</li><li><strong>গতি:</strong> v = d / t</li><li><strong>গড়:</strong> রাশিগুলোর যোগফল / রাশির সংখ্যা</li>
+                    </ul>
+                </div>
+                <div class="formula-box">
+                    <div class="f-title" data-i18n="fm-t2">২. বীজগণিত (Algebra)</div>
+                    <ul class="formula-list" data-i18n="fm-d2">
+                        <li><strong>বর্গ:</strong> (a+b)² = a² + 2ab + b²</li><li><strong>বর্গ:</strong> (a-b)² = a² - 2ab + b²</li><li><strong>মান নির্ণয়:</strong> a² + b² = (a+b)² - 2ab = (a-b)² + 2ab</li><li><strong>মান নির্ণয়:</strong> (a+b)² = (a-b)² + 4ab</li><li><strong>মান নির্ণয়:</strong> (a-b)² = (a+b)² - 4ab</li><li><strong>মান নির্ণয়:</strong> 2(a² + b²) = (a+b)² + (a-b)²</li><li><strong>মান নির্ণয়:</strong> 4ab = (a+b)² - (a-b)²</li><li><strong>মান নির্ণয়:</strong> ab = ((a+b)/2)² - ((a-b)/2)²</li><li><strong>উৎপাদক:</strong> a² - b² = (a+b)(a-b)</li><li><strong>উৎপাদক:</strong> (x+a)(x+b) = x² + (a+b)x + ab</li><li><strong>ঘন:</strong> (a+b)³ = a³ + 3a²b + 3ab² + b³</li><li><strong>ঘন:</strong> (a-b)³ = a³ - 3a²b + 3ab² - b³</li><li><strong>ঘনের মান:</strong> a³ + b³ = (a+b)³ - 3ab(a+b)</li><li><strong>ঘনের মান:</strong> a³ - b³ = (a-b)³ + 3ab(a-b)</li><li><strong>ঘনের উৎপাদক:</strong> a³ + b³ = (a+b)(a² - ab + b²)</li><li><strong>ঘনের উৎপাদক:</strong> a³ - b³ = (a-b)(a² + ab + b²)</li><li><strong>সূচক:</strong> aᵐ × aⁿ = aᵐ⁺ⁿ</li><li><strong>সূচক:</strong> aᵐ ÷ aⁿ = aᵐ⁻ⁿ</li><li><strong>সূচকের ঘাত:</strong> (aᵐ)ⁿ = aᵐⁿ</li><li><strong>লগারিদম:</strong> logₐ(MN) = logₐM + logₐN</li><li><strong>লগারিদম:</strong> logₐ(M/N) = logₐM - logₐN</li><li><strong>সমান্তর ধারা:</strong> a + (n-1)d</li><li><strong>সমান্তর সমষ্টি:</strong> Sₙ = n/2 [2a + (n-1)d]</li><li><strong>গুণোত্তর ধারা:</strong> arⁿ⁻¹</li><li><strong>সেট:</strong> n(A ∪ B) = n(A) + n(B) - n(A ∩ B)</li>
+                    </ul>
+                </div>
+                <div class="formula-box">
+                    <div class="f-title" data-i18n="fm-t3">৩. জ্যামিতি (Geometry)</div>
+                    <ul class="formula-list" data-i18n="fm-d3">
+                        <li><strong>ত্রিভুজ ক্ষেত্রফল:</strong> ½ × ভূমি × উচ্চতা</li><li><strong>সমবাহু ত্রিভুজ:</strong> (√3 / 4) × a²</li><li><strong>বিষমবাহু ত্রিভুজ:</strong> √[s(s-a)(s-b)(s-c)]</li><li><strong>আয়তক্ষেত্র:</strong> দৈর্ঘ্য × প্রস্থ</li><li><strong>বর্গক্ষেত্র:</strong> (বাহু)²</li><li><strong>সামান্তরিক:</strong> ভূমি × উচ্চতা</li><li><strong>রম্বস:</strong> ½ × d₁ × d₂</li><li><strong>ট্রাপিজিয়াম:</strong> ½ × (সমান্তরাল বাহুদ্বয়ের যোগফল) × উচ্চতা</li><li><strong>বৃত্ত:</strong> πr²</li><li><strong>পরিধি:</strong> 2πr</li><li><strong>বৃত্তকলা:</strong> (θ/360) × πr²</li><li><strong>ঘনক:</strong> a³</li><li><strong>সিলিন্ডার:</strong> πr²h</li><li><strong>শঙ্কু (Cone):</strong> ⅓πr²h</li><li><strong>গোলক:</strong> (4/3)πr³</li><li><strong>গোলকের পৃষ্ঠতল:</strong> 4πr²</li><li><strong>পিথাগোরাস:</strong> অতিভুজ² = লম্ব² + ভূমি²</li>
+                    </ul>
+                </div>
+                <div class="formula-box">
+                    <div class="f-title" data-i18n="fm-t4">৪. ত্রিকোণমিতি (Trigonometry)</div>
+                    <ul class="formula-list" data-i18n="fm-d4">
+                        <li><strong>sin θ:</strong> লম্ব / অতিভুজ</li><li><strong>cos θ:</strong> ভূমি / অতিভুজ</li><li><strong>tan θ:</strong> লম্ব / ভূমি</li><li><strong>সূত্র:</strong> sin²θ + cos²θ = 1</li><li><strong>সূত্র:</strong> sec²θ - tan²θ = 1</li><li><strong>সূত্র:</strong> cosec²θ - cot²θ = 1</li><li><strong>যৌগিক কোণ:</strong> sin(A+B) = sinA cosB + cosA sinB</li><li><strong>যৌগিক কোণ:</strong> cos(A+B) = cosA cosB - sinA sinB</li><li><strong>গুণিতক কোণ:</strong> sin2A = 2sinA cosA</li>
+                    </ul>
+                </div>
+                <div class="formula-box">
+                    <div class="f-title" data-i18n="fm-t5">৫. পদার্থবিজ্ঞান (Physics)</div>
+                    <ul class="formula-list" data-i18n="fm-d5">
+                        <li><strong>গতি:</strong> v = u + at</li><li><strong>সরণ:</strong> s = ut + ½at²</li><li><strong>গতির ৩য় সূত্র:</strong> v² = u² + 2as</li><li><strong>ভরবেগ:</strong> p = mv</li><li><strong>বল:</strong> F = ma</li><li><strong>ওজন:</strong> W = mg</li><li><strong>মহাকর্ষ:</strong> F = G(m₁m₂ / d²)</li><li><strong>ঘনত্ব:</strong> ρ = m / V</li><li><strong>চাপ:</strong> P = F / A</li><li><strong>কাজ:</strong> W = Fs</li><li><strong>ক্ষমতা:</strong> P = W / t</li><li><strong>গতিশক্তি:</strong> Eₖ = ½mv²</li><li><strong>বিভব শক্তি:</strong> Eₚ = mgh</li><li><strong>তাপ:</strong> Q = msΔθ</li><li><strong>তরঙ্গ বেগ:</strong> v = fλ</li><li><strong>কম্পাঙ্ক:</strong> f = 1 / T</li><li><strong>লেন্স:</strong> 1/f = 1/u + 1/v</li><li><strong>ওহমের সূত্র:</strong> V = IR</li><li><strong>সিরিজ রোদ:</strong> Rₛ = R₁ + R₂ + R₃</li><li><strong>প্যারালাল রোদ:</strong> 1/Rₚ = 1/R₁ + 1/R₂</li><li><strong>বিদ্যুৎ ক্ষমতা:</strong> P = VI = I²R</li><li><strong>তড়িৎ প্রবাহ:</strong> I = Q / t</li><li><strong>কুলম্বের সূত্র:</strong> F = C(q₁q₂ / r²)</li><li><strong>ভর-শক্তি:</strong> E = mc²</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="view-container" id="settings-view">
+        <div class="panel-page">
+            <div class="page-header"><button class="icon-btn" onclick="goBack()"><i class="fas fa-arrow-left"></i></button> <span data-i18n="menu-set">সেটিংস ও হিস্টোরি</span></div>
+            <div class="page-content">
+                <div class="setting-row">
+                    <div><strong data-i18n="set-dark">ডার্ক মোড (Dark Mode)</strong><br><span style="font-size:0.85rem; color:#70757a;" data-i18n="set-darksub">থিম পরিবর্তন করুন</span></div>
+                    <label class="switch"><input type="checkbox" onchange="toggleTheme()" id="darkToggle"><span class="slider"></span></label>
+                </div>
+                
+                <div class="form-group" style="margin-top:15px;">
+                    <label data-i18n="set-lang">অ্যাপের ভাষা (Language)</label>
+                    <select class="form-control" onchange="changeLanguage(this.value)" id="lang-select">
+                        <option value="auto" selected>অটো মোড (Auto)</option>
+                        <option value="bn">বাংলা (Bengali)</option>
+                        <option value="en">English</option>
+                    </select>
+                </div>
+
+                <div class="form-group" style="margin-top:15px;">
+                    <label data-i18n="set-del">হিস্টোরি অটো-ডিলিট (Auto Delete)</label>
+                    <select class="form-control" id="auto-del-select" onchange="setAutoDel(this.value)">
+                        <option value="never" data-i18n="opt-never">কখনো না (Never)</option><option value="7" data-i18n="opt-7d">৭ দিন পর</option><option value="15" data-i18n="opt-15d">১৫ দিন পর</option><option value="30" data-i18n="opt-30d">৩০ দিন পর</option>
+                    </select>
+                </div>
+
+                <div style="margin-top:20px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                        <h3 style="font-size:1.1rem; color:var(--primary);" data-i18n="set-hist">সংরক্ষিত হিসাব (History)</h3>
+                        <span style="font-size:0.8rem; color:#70757a;" data-i18n="set-fav">⭐ = ফেভারিট</span>
+                    </div>
+                    <div class="history-box" id="settings-history-list"></div>
+                    <button class="btn-action" style="background:#d93025; margin-top:15px;" onclick="clearHistory()" data-i18n="set-clear">সব সাধারণ হিস্টোরি মুছুন</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Core Variables ---
+        let expression = ""; let isSci = false; let isDegree = true; let lastAns = "0"; let historyList = [];
+        let shouldResetScreen = false;
+        
+        // নেভিগেশনের মূল ভ্যারিয়েবল (আপডেটেড)
+        let activeView = 'calc-view'; 
+        let viewStack = ['calc-view']; 
+        let autoDelDays = 'never';
+
+        const resEl = document.getElementById('result'); const histEl = document.getElementById('history');
+
+        window.onload = () => {
+            let savedHist = localStorage.getItem('calcHistory');
+            if(savedHist) { historyList = JSON.parse(savedHist); cleanOldHistory(); }
+            let draft = localStorage.getItem('calcDraft');
+            if(draft) { expression = draft; updateDisplay(); }
+            let savedDel = localStorage.getItem('autoDeleteDays');
+            if(savedDel) { autoDelDays = savedDel; document.getElementById('auto-del-select').value = savedDel; }
+            history.replaceState({view: 'calc-view'}, null, '');
+            history.pushState({view: 'calc-view'}, null, ''); 
+        };
+
+        // --- Navigation Core (আপডেটেড) ---
+        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('overlay').classList.toggle('active'); }
+        function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('overlay').classList.remove('active'); }
+        
+        function navTo(id) {
+            closeSidebar(); 
+            if(activeView === id) return; 
+
+            // হোম পেজে আসলে ব্যাক হিস্টোরি ক্লিয়ার করে দেওয়া হবে (যাতে হোম থেকে আর পিছনে না যায়)
+            if(id === 'calc-view') {
+                viewStack = ['calc-view'];
+            } else {
+                viewStack.push(id);
+            }
+
+            activeView = id;
+            document.querySelectorAll('.view-container').forEach(el => el.classList.remove('active')); 
+            document.getElementById(id).classList.add('active'); 
+            history.pushState({view: id}, null, '');
+            
+            if(id === 'unit-view') updateUnitOptions();
+            if(id === 'gpa-view' && document.getElementById('gpa-rows').children.length === 0) { addGpaRow(); addGpaRow(); addGpaRow(); }
+            if(id === 'solver-view') changeEqType();
+            if(id === 'settings-view') updateSettingsHistory();
+        }
+
+        // --- Hardware & Arrow Back Button Logic (আপডেটেড) ---
+        function goBack() {
+            if (activeView === 'calc-view') {
+                showExitModal(); 
+                history.pushState({view: 'calc-view'}, null, '');
+            } else if (viewStack.length > 1) { 
+                history.back(); // এটি popstate ইভেন্ট ট্রিগার করবে
+            } else {
+                showExitModal(); 
+                history.pushState({view: 'calc-view'}, null, '');
+            }
+        }
+
+        window.addEventListener('popstate', function(event) {
+            if(document.getElementById('sidebar').classList.contains('open')) {
+                closeSidebar(); 
+                history.pushState({view: activeView}, null, ''); 
+                return;
+            }
+            if(document.getElementById('exit-modal').style.display === 'flex') {
+                closeExitModal(); 
+                history.pushState({view: 'calc-view'}, null, ''); 
+                return;
+            }
+
+            // ট্র্যাপ: বর্তমানে হোম পেজে থাকলে সবসময় এক্সিট অপশন আসবে
+            if (activeView === 'calc-view') {
+                showExitModal();
+                history.pushState({view: 'calc-view'}, null, ''); 
+                return;
+            }
+
+            if(viewStack.length > 1) {
+                viewStack.pop(); 
+                activeView = viewStack[viewStack.length - 1];
+                document.querySelectorAll('.view-container').forEach(el => el.classList.remove('active')); 
+                document.getElementById(activeView).classList.add('active');
+            } else {
+                activeView = 'calc-view';
+                document.querySelectorAll('.view-container').forEach(el => el.classList.remove('active')); 
+                document.getElementById('calc-view').classList.add('active');
+                showExitModal(); 
+                history.pushState({view: 'calc-view'}, null, ''); 
+            }
+        });
+
+        function showExitModal() { document.getElementById('exit-modal').style.display = 'flex'; }
+        function closeExitModal() { document.getElementById('exit-modal').style.display = 'none'; }
+        function confirmExit() {
+            // পদ্ধতি ১: Android WebView Java Interface
+            if (typeof Android !== 'undefined' && Android.exitApp) { Android.exitApp(); return; }
+            // পদ্ধতি ২: Cordova/PhoneGap
+            if (typeof navigator.app !== 'undefined' && navigator.app.exitApp) { navigator.app.exitApp(); return; }
+            // পদ্ধতি ৩: WebIntoApp / Web2APK
+            if (typeof device !== 'undefined') { navigator.device.exitApp(); return; }
+            // পদ্ধতি ৪: window.close
+            window.close();
+            // পদ্ধতি ৫: history এর শুরুতে ফিরে যাওয়া
+            setTimeout(function() { window.history.go(-(window.history.length)); }, 200);
+        }
+
+        
+        function toggleSciMode() {
+            navTo('calc-view'); isSci = !isSci;
+            document.getElementById('keypad-standard').style.display = isSci ? 'none' : 'grid';
+            document.getElementById('keypad-scientific').style.display = isSci ? 'grid' : 'none';
+            isSci ? document.getElementById('mode-btn').classList.add('active-mode') : document.getElementById('mode-btn').classList.remove('active-mode');
+        }
+        function toggleTheme() { document.body.classList.toggle('dark-mode'); }
+
+        const langDict = {
+            "menu-title": { auto: "মেনু (Menu)", bn: "মেনু", en: "Menu" },
+            "menu-calc": { auto: "মূল ক্যালকুলেটর", bn: "ক্যালকুলেটর", en: "Calculator" },
+            "menu-form": { auto: "সূত্র ও উপপাদ্য", bn: "সকল সূত্র", en: "Formulas" },
+            "menu-geom": { auto: "জ্যামিতির চিত্র ও সংজ্ঞা", bn: "জ্যামিতি", en: "Geometry" },
+            "menu-finance": { auto: "ফাইন্যান্স ও হিসাব", bn: "ফাইন্যান্স টুলস", en: "Finance Tools" },
+            "menu-stat": { auto: "পরিসংখ্যান (গড়, মধ্যক)", bn: "পরিসংখ্যান", en: "Statistics" },
+            "menu-tools": { auto: "অটো কনভার্টার্স ও টুলস", bn: "অন্যান্য টুলস", en: "Converters" },
+            "menu-eq": { auto: "সমীকরণ সলভার", bn: "সমীকরণ সমাধান", en: "Equation Solver" },
+            "menu-graph": { auto: "গ্রাফ ক্যালকুলেটর", bn: "গ্রাফ ক্যালকুলেটর", en: "Graph Calculator" },
+            "menu-gpa": { auto: "জিপিএ (GPA) নির্ণয়", bn: "জিপিএ নির্ণয়", en: "GPA Calculator" },
+            "menu-curr": { auto: "কারেন্সি (Currency)", bn: "কারেন্সি", en: "Currency Converter" },
+            "menu-set": { auto: "সেটিংস ও হিস্টোরি", bn: "সেটিংস", en: "Settings" },
+            "tool-num": { auto: "নাম্বার সিস্টেম", bn: "সংখ্যা পদ্ধতি", en: "Number System" },
+            "tool-unit": { auto: "ইউনিট রূপান্তর", bn: "একক রূপান্তর", en: "Unit Converter" },
+            "tool-time": { auto: "সময় (Time)", bn: "সময় কনভার্টার", en: "Time Converter" },
+            "tool-data": { auto: "ডেটা কনভার্টার", bn: "ডেটা কনভার্টার", en: "Data Converter" },
+            "tool-zakat": { auto: "যাকাত হিসাব", bn: "যাকাত ক্যালকুলেটর", en: "Zakat Calculator" },
+            "tool-lcm": { auto: "লসাগু ও গসাগু", bn: "লসাগু/গসাগু", en: "LCM & GCD" },
+            "tool-health": { auto: "স্বাস্থ্য ও BMI", bn: "স্বাস্থ্য", en: "Health & BMI" },
+            "tool-age": { auto: "বয়স ক্যালকুলেটর", bn: "বয়স নির্ণয়", en: "Age Calculator" },
+            "tool-emi": { auto: "EMI / Loan", bn: "লোন হিসাব", en: "EMI / Loan" },
+            "tool-pl": { auto: "লাভ - ক্ষতি", bn: "লাভ-ক্ষতি", en: "Profit - Loss" },
+            "tool-vat": { auto: "VAT / Tax", bn: "ভ্যাট/ট্যাক্স", en: "VAT / Tax" },
+            "tool-disc": { auto: "ডিসকাউন্ট", bn: "ডিসকাউন্ট", en: "Discount" },
+            "tool-ci": { auto: "চক্রবৃদ্ধি সুদ", bn: "চক্রবৃদ্ধি সুদ", en: "Compound Interest" },
+            "tool-sg": { auto: "সঞ্চয়ের লক্ষ্য", bn: "সঞ্চয়", en: "Savings Goal" },
+            "set-dark": { auto: "ডার্ক মোড (Dark Mode)", bn: "ডার্ক মোড", en: "Dark Mode" },
+            "set-darksub": { auto: "থিম পরিবর্তন করুন", bn: "থিম পরিবর্তন করুন", en: "Change App Theme" },
+            "set-lang": { auto: "অ্যাপের ভাষা (Language)", bn: "ভাষা", en: "App Language" },
+            "set-del": { auto: "হিস্টোরি অটো-ডিলিট (Auto Delete)", bn: "অটো-ডিলিট", en: "Auto Delete" },
+            "set-hist": { auto: "সংরক্ষিত হিসাব (History)", bn: "সংরক্ষিত হিসাব", en: "Saved History" },
+            "set-fav": { auto: "⭐ = ফেভারিট", bn: "⭐ = ফেভারিট", en: "⭐ = Favorite" },
+            "set-clear": { auto: "সব সাধারণ হিস্টোরি মুছুন", bn: "ইতিহাস মুছুন", en: "Clear History" },
+            "exit-title": { auto: "অ্যাপ থেকে বের হবেন?", bn: "বের হতে চান?", en: "Exit App?" },
+            "exit-desc": { auto: "আপনি কি নিশ্চিত যে অ্যাপ্লিকেশনটি বন্ধ করতে চান?", bn: "আপনি কি নিশ্চিত?", en: "Are you sure you want to exit?" },
+            "exit-no": { auto: "না, বাতিল", bn: "না", en: "No" },
+            "exit-yes": { auto: "হ্যাঁ, বের হবো", bn: "হ্যাঁ", en: "Yes, Exit" },
+            "btn-calc": { auto: "হিসাব করুন", bn: "হিসাব করুন", en: "Calculate" },
+            "btn-plot": { auto: "গ্রাফ আঁকুন (Plot)", bn: "গ্রাফ আঁকুন", en: "Plot Graph" },
+            "btn-addrow": { auto: "+ বিষয় যোগ করুন", bn: "+ বিষয় যোগ করুন", en: "+ Add Subject" },
+            "btn-vadd": { auto: "ভ্যাট যোগ করুন (Add VAT)", bn: "ভ্যাট যোগ করুন", en: "Add VAT" },
+            "btn-vrem": { auto: "ভ্যাট বাদ দিন (Remove VAT)", bn: "ভ্যাট বাদ দিন", en: "Remove VAT" },
+            "lbl-amt": { auto: "পরিমাণ (Amount)", bn: "পরিমাণ", en: "Amount" },
+            "lbl-from": { auto: "From", bn: "থেকে", en: "From" },
+            "lbl-to": { auto: "To", bn: "ফলাফল", en: "To" },
+            "lbl-res": { auto: "ফলাফল", bn: "ফলাফল", en: "Result" },
+            "lbl-cat": { auto: "ক্যাটাগরি", bn: "ক্যাটাগরি", en: "Category" },
+            "cat-len": { auto: "দৈর্ঘ্য (Length)", bn: "দৈর্ঘ্য", en: "Length" },
+            "cat-wgt": { auto: "ওজন (Weight/Mass)", bn: "ওজন", en: "Weight" },
+            "cat-tmp": { auto: "তাপমাত্রা (Temperature)", bn: "তাপমাত্রা", en: "Temperature" },
+            "cat-ara": { auto: "ক্ষেত্রফল (Area)", bn: "ক্ষেত্রফল", en: "Area" },
+            "cat-vol": { auto: "আয়তন (Volume)", bn: "আয়তন", en: "Volume" },
+            "cat-spd": { auto: "গতি (Speed)", bn: "গতি", en: "Speed" },
+            "cat-pre": { auto: "চাপ (Pressure)", bn: "চাপ", en: "Pressure" },
+            "cat-eng": { auto: "শক্তি (Energy)", bn: "শক্তি", en: "Energy" },
+            "cat-pwr": { auto: "ক্ষমতা (Power)", bn: "ক্ষমতা", en: "Power" },
+            "lbl-cname": { auto: "কোর্সের নাম", bn: "কোর্স", en: "Course Name" },
+            "lbl-cgrade": { auto: "গ্রেড (A/B/C)", bn: "গ্রেড", en: "Grade" },
+            "lbl-ccred": { auto: "ক্রেডিট", bn: "ক্রেডিট", en: "Credit" },
+            "lbl-cgpa": { auto: "সর্বমোট CGPA", bn: "মোট জিপিএ", en: "Total CGPA" },
+            "lbl-prin": { auto: "আসল/লোন (Principal)", bn: "মূল টাকা", en: "Principal" },
+            "lbl-rate": { auto: "সুদের হার (%)", bn: "সুদের হার", en: "Interest Rate" },
+            "lbl-month": { auto: "সময় (Months)", bn: "মাস", en: "Months" },
+            "lbl-year": { auto: "সময় (Years)", bn: "বছর", en: "Years" },
+            "lbl-emi": { auto: "মাসিক কিস্তি (EMI)", bn: "মাসিক কিস্তি", en: "Monthly EMI" },
+            "lbl-tinterest": { auto: "মোট সুদ (Interest)", bn: "মোট সুদ", en: "Total Interest" },
+            "lbl-tpay": { auto: "সর্বমোট পরিশোধ", bn: "মোট পরিশোধ", en: "Total Payable" },
+            "lbl-cp": { auto: "ক্রয়মূল্য (Cost Price)", bn: "ক্রয়মূল্য", en: "Cost Price" },
+            "lbl-sp": { auto: "বিক্রয়মূল্য (Selling Price)", bn: "বিক্রয়মূল্য", en: "Selling Price" },
+            "lbl-vrate": { auto: "ভ্যাট/ট্যাক্স হার (%)", bn: "ভ্যাটের হার", en: "VAT Rate (%)" },
+            "lbl-famt": { auto: "চূড়ান্ত পরিমাণ", bn: "চূড়ান্ত পরিমাণ", en: "Final Amount" },
+            "lbl-oprice": { auto: "আসল দাম (Orig. Price)", bn: "আসল দাম", en: "Original Price" },
+            "lbl-drate": { auto: "ছাড়ের হার (%)", bn: "ছাড় (%)", en: "Discount (%)" },
+            "lbl-dsave": { auto: "ছাড়ের টাকা", bn: "ছাড়ের পরিমাণ", en: "You Save" },
+            "lbl-nprice": { auto: "বর্তমান দাম", bn: "বর্তমান দাম", en: "New Price" },
+            "lbl-tamt": { auto: "সবৃদ্ধিমূল (Total Amt.)", bn: "সবৃদ্ধিমূল", en: "Total Amount" },
+            "lbl-goal": { auto: "লক্ষ্যমাত্রা (Goal)", bn: "লক্ষ্যমাত্রা", en: "Goal Amount" },
+            "lbl-sgpm": { auto: "প্রতি মাসে জমা", bn: "মাসিক জমা", en: "Monthly Deposit" },
+            "lbl-grapheq": { auto: "সমীকরণ লিখুন", bn: "সমীকরণ", en: "Enter Equation" },
+            "lbl-tyear": { auto: "বছর (Year)", bn: "বছর", en: "Year" },
+            "lbl-tmonth": { auto: "মাস (Month)", bn: "মাস", en: "Month" },
+            "lbl-tweek": { auto: "সপ্তাহ (Week)", bn: "সপ্তাহ", en: "Week" },
+            "lbl-tday": { auto: "দিন (Day)", bn: "দিন", en: "Day" },
+            "lbl-thour": { auto: "ঘণ্টা (Hour)", bn: "ঘণ্টা", en: "Hour" },
+            "lbl-tmin": { auto: "মিনিট (Minute)", bn: "মিনিট", en: "Minute" },
+            "lbl-tsec": { auto: "সেকেন্ড (Second)", bn: "সেকেন্ড", en: "Second" },
+            "txt-t-know": { auto: "জেনে রাখুন (সাধারণ তথ্য):", bn: "জেনে রাখুন:", en: "General Info:" },
+            "txt-t-cen": { auto: "• ১ শতাব্দী = ১০০ বছর", bn: "• ১ শতাব্দী = ১০০ বছর", en: "• 1 Century = 100 Years" },
+            "txt-t-yug": { auto: "• ১ যুগ = ১২ বছর", bn: "• ১ যুগ = ১২ বছর", en: "• 1 Yug = 12 Years" },
+            "txt-t-yr": { auto: "• ১ বছর = ১২ মাস বা ৩৬৫ দিন", bn: "• ১ বছর = ১২ মাস", en: "• 1 Year = 12 Months" },
+            "txt-t-wk": { auto: "• ১ সপ্তাহ = ৭ দিন", bn: "• ১ সপ্তাহ = ৭ দিন", en: "• 1 Week = 7 Days" },
+            "txt-t-day": { auto: "• ১ দিন = ২৪ ঘণ্টা", bn: "• ১ দিন = ২৪ ঘণ্টা", en: "• 1 Day = 24 Hours" },
+            "txt-t-hr": { auto: "• ১ ঘণ্টা = ৬০ মিনিট", bn: "• ১ ঘণ্টা = ৬০ মিনিট", en: "• 1 Hour = 60 Minutes" },
+            "txt-zakat-hadith": { auto: "হাদিস: যে ব্যক্তিকে আল্লাহ সম্পদ দিয়েছেন, কিন্তু সে তার যাকাত আদায় করেনি, কিয়ামতের দিন তা একটি বিষধর সাপে পরিণত হয়ে তাকে দংশন করবে। — (সহীহ বুখারী: ১৪০৩)", bn: "হাদিস: যে ব্যক্তিকে আল্লাহ সম্পদ দিয়েছেন, কিন্তু সে তার যাকাত আদায় করেনি, কিয়ামতের দিন তা একটি বিষধর সাপে পরিণত হয়ে তাকে দংশন করবে। — (সহীহ বুখারী: ১৪০৩)", en: "Hadith: Whoever is made wealthy by Allah and does not pay the Zakat of his wealth, then on the Day of Resurrection his wealth will be made like a bald-headed poisonous male snake. — (Sahih Bukhari)" },
+            "txt-zakat-rule": { auto: "যাকাতের বাধ্যতামূলক নিয়ম: ১. সম্পদ আপনার কাছে পূর্ণ এক চান্দ্র বছর (৩৫৪ দিন) থাকতে হবে। ২. মোট সম্পদ নিসাবের (সাড়ে ৭ ভরি সোনা বা বাউয়ান্ন ভরি রুপার সমমূল্য) সমান বা বেশি হতে হবে।", bn: "যাকাতের নিয়ম: ১. সম্পদ ১ বছর থাকতে হবে। ২. সম্পদ নিসাবের সমান বা বেশি হতে হবে।", en: "Zakat Rules: 1. Asset held for 1 lunar year. 2. Total asset must meet or exceed Nisab." },
+            "lbl-zakat-yr": { auto: "সম্পদ পূর্ণ এক বছর ছিল", bn: "সম্পদ এক বছর ছিল", en: "Asset held for 1 Year" },
+            "lbl-nisab": { auto: "বর্তমান নিসাবের পরিমাণ (টাকায়)", bn: "নিসাব (টাকায়)", en: "Nisab Amount" },
+            "lbl-zcash": { auto: "নগদ অর্থ ও ব্যাংকে জমা", bn: "নগদ অর্থ", en: "Cash & Bank" },
+            "lbl-zgold": { auto: "সোনার বর্তমান মূল্য", bn: "সোনার মূল্য", en: "Gold Value" },
+            "lbl-zsilver": { auto: "রূপার বর্তমান মূল্য", bn: "রূপার মূল্য", en: "Silver Value" },
+            "lbl-zbiz": { auto: "ব্যবসার সম্পদ/বিনিয়োগ", bn: "ব্যবসার সম্পদ", en: "Business Asset" },
+            "lbl-zdebt": { auto: "ঋণ বা ধার (বিয়োগ হবে)", bn: "ঋণ (বিয়োগ)", en: "Debt (Subtract)" },
+            "lbl-zres": { auto: "সর্বমোট প্রদেয় যাকাত (২.৫%)", bn: "যাকাত", en: "Payable Zakat (2.5%)" },
+            "lbl-linput": { auto: "সংখ্যাগুলো (কমা দিয়ে লিখুন)", bn: "সংখ্যা দিন", en: "Numbers (comma separated)" },
+            "lbl-weight": { auto: "ওজন (কেজি - KG)", bn: "ওজন (KG)", en: "Weight (KG)" },
+            "lbl-hft": { auto: "উচ্চতা (ফুট)", bn: "ফুট", en: "Height (Ft)" },
+            "lbl-hin": { auto: "উচ্চতা (ইঞ্চি)", bn: "ইঞ্চি", en: "Height (In)" },
+            "lbl-bdate": { auto: "জন্মতারিখ", bn: "জন্মতারিখ", en: "Birth Date" },
+            "lbl-eqtype": { auto: "সমীকরণের ধরন নির্বাচন করুন", bn: "ধরন", en: "Equation Type" },
+            "eq-quad": { auto: "ax² + bx + c = 0 (দ্বিঘাত সমীকরণ)", bn: "দ্বিঘাত সমীকরণ", en: "Quadratic (ax² + bx + c = 0)" },
+            "eq-lin": { auto: "ax + b = 0 (একঘাত সমীকরণ)", bn: "একঘাত সমীকরণ", en: "Linear (ax + b = 0)" },
+            "eq-lin2": { auto: "a₁x+b₁y=c₁ ও a₂x+b₂y=c₂ (দুই চলক)", bn: "দুই চলক সমীকরণ", en: "Two Variables" },
+            "lbl-sdata": { auto: "উপাত্ত (কমা দিয়ে লিখুন)", bn: "উপাত্ত", en: "Data (comma separated)" },
+            "lbl-mean": { auto: "গড় (Mean)", bn: "গড়", en: "Mean" },
+            "lbl-median": { auto: "মধ্যক (Median)", bn: "মধ্যক", en: "Median" },
+            "lbl-mode": { auto: "প্রচুরক (Mode)", bn: "প্রচুরক", en: "Mode" },
+            "txt-stat-rule": { auto: "সূত্রাবলি: • গড় = উপাত্তসমূহের সমষ্টি ÷ উপাত্তের সংখ্যা • মধ্যক = ক্রমানুসারে সাজানোর পর মাঝের মান • প্রচুরক = সর্বাধিক বার থাকা সংখ্যা", bn: "সূত্র: গড় = সমষ্টি/সংখ্যা, মধ্যক = মাঝের মান, প্রচুরক = সর্বাধিক বার থাকা সংখ্যা।", en: "Formulas: Mean = Sum/Count, Median = Middle value, Mode = Most frequent value." },
+            "opt-never": { auto: "কখনো না (Never)", bn: "কখনো না", en: "Never" },
+            "opt-7d": { auto: "৭ দিন পর", bn: "৭ দিন পর", en: "After 7 Days" },
+            "opt-15d": { auto: "১৫ দিন পর", bn: "১৫ দিন পর", en: "After 15 Days" },
+            "opt-30d": { auto: "৩০ দিন পর", bn: "৩০ দিন পর", en: "After 30 Days" },
+            "lbl-dec": { auto: "Decimal (ডেসিমাল)", bn: "ডেসিমাল", en: "Decimal" },
+            "lbl-rom": { auto: "Roman (রোমান সংখ্যা)", bn: "রোমান সংখ্যা", en: "Roman" },
+            "lbl-bin": { auto: "Binary (বাইনারি)", bn: "বাইনারি", en: "Binary" },
+            "lbl-oct": { auto: "Octal (অক্টাল)", bn: "অক্টাল", en: "Octal" },
+            "lbl-hex": { auto: "Hexadecimal (হেক্স)", bn: "হেক্সাডেসিমাল", en: "Hexadecimal" },
+            "lbl-dtb": { auto: "TB (টেরাবাইট)", bn: "টেরাবাইট (TB)", en: "Terabyte (TB)" },
+            "lbl-dgb": { auto: "GB (গিগাবাইট)", bn: "গিগাবাইট (GB)", en: "Gigabyte (GB)" },
+            "lbl-dmb": { auto: "MB (মেগাবাইট)", bn: "মেগাবাইট (MB)", en: "Megabyte (MB)" },
+            "lbl-dkb": { auto: "KB (কিলোবাইট)", bn: "কিলোবাইট (KB)", en: "Kilobyte (KB)" },
+            "geo-t1": { auto: "ত্রিভুজ (Triangle)", bn: "ত্রিভুজ", en: "Triangle" },
+            "geo-t2": { auto: "সংজ্ঞা: তিনটি রেখাংশ দ্বারা আবদ্ধ চিত্র। বৈশিষ্ট্য: ৩টি কোণের সমষ্টি ১৮০°। ক্ষেত্রফল = ½ × ভূমি × উচ্চতা।", bn: "সংজ্ঞা: তিনটি রেখাংশ দ্বারা আবদ্ধ চিত্র। বৈশিষ্ট্য: ৩টি কোণের সমষ্টি ১৮০°।", en: "3 straight sides. Area = ½ × base × height. Sum of angles = 180°." },
+            "geo-s1": { auto: "বর্গক্ষেত্র (Square)", bn: "বর্গক্ষেত্র", en: "Square" },
+            "geo-s2": { auto: "সংজ্ঞা: যে চতুর্ভুজের ৪টি বাহু সমান এবং কোণগুলো সমকোণ। বৈশিষ্ট্য: কর্ণদ্বয় সমান। ক্ষেত্রফল = (বাহু)²", bn: "সংজ্ঞা: ৪টি বাহু সমান এবং কোণগুলো সমকোণ।", en: "4 equal sides, 90° angles. Area = side²." },
+            "geo-r1": { auto: "আয়তক্ষেত্র (Rectangle)", bn: "আয়তক্ষেত্র", en: "Rectangle" },
+            "geo-r2": { auto: "সংজ্ঞা: বিপরীত বাহুগুলো সমান ও সমান্তরাল এবং কোণগুলো সমকোণ। বৈশিষ্ট্য: ক্ষেত্রফল = দৈর্ঘ্য × প্রস্থ।", bn: "সংজ্ঞা: বিপরীত বাহু সমান ও সমান্তরাল এবং কোণ সমকোণ।", en: "Opposite sides equal, 90° angles. Area = L × W." },
+            "geo-p1": { auto: "সামান্তরিক (Parallelogram)", bn: "সামান্তরিক", en: "Parallelogram" },
+            "geo-p2": { auto: "সংজ্ঞা: বিপরীত বাহুগুলো সমান্তরাল কিন্তু কোণ সমকোণ নয়। বৈশিষ্ট্য: ক্ষেত্রফল = ভূমি × উচ্চতা।", bn: "সংজ্ঞা: বিপরীত বাহু সমান্তরাল কিন্তু কোণ সমকোণ নয়।", en: "Opposite sides parallel. Area = Base × Height." },
+            "geo-rh1": { auto: "রম্বস (Rhombus)", bn: "রম্বস", en: "Rhombus" },
+            "geo-rh2": { auto: "সংজ্ঞা: ৪টি বাহুই সমান কিন্তু কোণ সমকোণ নয়। বৈশিষ্ট্য: ক্ষেত্রফল = ½ × (কর্ণদ্বয়ের গুণফল)।", bn: "সংজ্ঞা: ৪টি বাহুই সমান কিন্তু কোণ সমকোণ নয়।", en: "4 equal sides, no 90° angles. Area = ½ × (d1 × d2)." },
+            "geo-tr1": { auto: "ট্রাপিজিয়াম (Trapezium)", bn: "ট্রাপিজিয়াম", en: "Trapezium" },
+            "geo-tr2": { auto: "সংজ্ঞা: যে চতুর্ভুজের একজোড়া বিপরীত বাহু সমান্তরাল। বৈশিষ্ট্য: ক্ষেত্রফল = ½ × (সমান্তরাল বাহুদ্বয়ের যোগফল) × উচ্চতা।", bn: "সংজ্ঞা: একজোড়া বিপরীত বাহু সমান্তরাল।", en: "One pair of parallel sides. Area = ½(a+b)h." },
+            "geo-c1": { auto: "বৃত্ত (Circle)", bn: "বৃত্ত", en: "Circle" },
+            "geo-c2": { auto: "সংজ্ঞা: একটি নির্দিষ্ট বিন্দু থেকে সমদূরত্ব বজায় রেখে আবদ্ধ বক্ররেখা। বৈশিষ্ট্য: ক্ষেত্রফল = πr²। পরিধি = 2πr।", bn: "সংজ্ঞা: একটি নির্দিষ্ট বিন্দু থেকে সমদূরত্বে আবদ্ধ বক্ররেখা।", en: "Round shape. Area = πr². Circumference = 2πr." },
+            "fm-t1": { auto: "১. পাটিগণিত (Arithmetic)", bn: "পাটিগণিত", en: "1. Arithmetic" },
+            "fm-t2": { auto: "২. বীজগণিত (Algebra)", bn: "বীজগণিত", en: "2. Algebra" },
+            "fm-t3": { auto: "৩. জ্যামিতি (Geometry)", bn: "জ্যামিতি", en: "3. Geometry" },
+            "fm-t4": { auto: "৪. ত্রিকোণমিতি (Trigonometry)", bn: "ত্রিকোণমিতি", en: "4. Trigonometry" },
+            "fm-t5": { auto: "৫. পদার্থবিজ্ঞান (Physics)", bn: "পদার্থবিজ্ঞান", en: "5. Physics" }
+        };
+        
+        function changeLanguage(langCode) {
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                let key = el.getAttribute('data-i18n');
+                if(langDict[key] && langDict[key][langCode]) { 
+                    if(el.innerHTML.includes('<') && !el.innerHTML.startsWith('<span')) return;
+                    el.innerText = langDict[key][langCode]; 
+                }
+            });
+        }
+
+        function setAutoDel(val) { autoDelDays = val; localStorage.setItem('autoDeleteDays', val); cleanOldHistory(); updateSettingsHistory(); }
+        
+        function saveToHistory(expr, res) { 
+            historyList.unshift({ e: expr, r: res, t: new Date().getTime(), f: false }); 
+            if(historyList.length > 50) historyList.pop(); 
+            localStorage.setItem('calcHistory', JSON.stringify(historyList));
+        }
+
+        function toggleFav(index) {
+            historyList[index].f = !historyList[index].f;
+            localStorage.setItem('calcHistory', JSON.stringify(historyList));
+            updateSettingsHistory();
+        }
+
+        function cleanOldHistory() {
+            if(autoDelDays === 'never') return;
+            let now = new Date().getTime();
+            let daysMs = parseInt(autoDelDays) * 24 * 60 * 60 * 1000;
+            historyList = historyList.filter(item => item.f || (now - item.t <= daysMs));
+            localStorage.setItem('calcHistory', JSON.stringify(historyList));
+        }
+
+        function updateSettingsHistory() {
+            const list = document.getElementById('settings-history-list'); list.innerHTML = "";
+            if(historyList.length === 0) { list.innerHTML = "<div style='color:#70757a; text-align:center; padding:20px;'>কোনো হিসাব নেই</div>"; return; }
+            historyList.forEach((item, index) => {
+                let d = document.createElement('div'); d.className = 'hist-item';
+                let favClass = item.f ? "fas fa-star hist-fav active" : "far fa-star hist-fav";
+                d.innerHTML = `
+                    <div class="hist-left" onclick="loadHist(${index})">
+                        <div style="font-size:0.9rem; color:#70757a;">${item.e}</div>
+                        <strong style="font-size:1.3rem; color:var(--text-color);">= ${item.r}</strong>
+                    </div>
+                    <div class="hist-right"><i class="${favClass}" onclick="toggleFav(${index})"></i></div>
+                `;
+                list.appendChild(d);
+            });
+        }
+        function loadHist(index) { expression = historyList[index].r.toString(); updateDisplay(); navTo('calc-view'); }
+        function showToast(msg) {
+            let t = document.getElementById("toast-msg");
+            if(!t) { t = document.createElement("div"); t.id="toast-msg"; t.style.cssText="position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#323232;color:#fff;padding:12px 24px;border-radius:24px;font-size:1rem;z-index:9999;opacity:0;transition:opacity 0.3s;pointer-events:none;white-space:nowrap;"; document.body.appendChild(t); }
+            t.innerText = msg; t.style.opacity = "1";
+            setTimeout(function() { t.style.opacity = "0"; }, 2500);
+        }
+
+        function clearHistory() { 
+            historyList = historyList.filter(i => i.f); 
+            localStorage.setItem('calcHistory', JSON.stringify(historyList));
+            updateSettingsHistory(); histEl.innerText = ""; showToast("সাধারণ হিস্টোরি মোছা হয়েছে!"); 
+        }
+
+        function toggleAngle() { isDegree = !isDegree; document.getElementById('angle-mode').innerText = isDegree ? "DEG" : "RAD"; }
+        function saveDraft() { localStorage.setItem('calcDraft', expression); }
+
+        function appendNum(n) { 
+            if(shouldResetScreen) { 
+                expression = (n === '.') ? "0." : n.toString(); 
+                shouldResetScreen = false; histEl.innerText = ""; 
+            } else { 
+                if (n === '.') {
+                    let lastNumberMatch = expression.match(/[\d.]+$/);
+                    if (lastNumberMatch && lastNumberMatch[0].includes('.')) return; 
+                    if (expression === "" || /[\+\-\×\÷\^\(]$/.test(expression)) {
+                        expression += "0."; updateDisplay(); saveDraft(); return;
+                    }
+                }
+                let lastMatch = expression.match(/[\d.]+$/);
+                if (lastMatch && lastMatch[0] === "0" && n !== '.') {
+                    expression = expression.slice(0, -1) + n.toString(); 
+                } else {
+                    expression += n; 
+                }
+            }
+            updateDisplay(); saveDraft();
+        }
+
+        function appendOp(op) { 
+            let startChars = ['sin(','cos(','tan(','asin(','acos(','atan(','log(','ln(','√(','Abs(','(','π','e'];
+            
+            if(startChars.includes(op)) {
+                if(shouldResetScreen) { expression = op; shouldResetScreen = false; histEl.innerText = ""; }
+                else { 
+                    let last = expression.slice(-1);
+                    if (/\d|\)|π|e/.test(last)) {
+                        expression += "×" + op;
+                    } else {
+                        expression += op; 
+                    }
+                }
+                updateDisplay(); saveDraft(); return;
+            }
+
+            if(expression === "" && op !== '-') return;
+            shouldResetScreen = false; 
+            
+            let lastChar = expression.slice(-1);
+            if (['+', '-', '×', '÷'].includes(lastChar) && ['+', '-', '×', '÷', '^', '²'].includes(op)) {
+                expression = expression.slice(0, -1) + op; 
+            } else {
+                expression += op; 
+            }
+            updateDisplay(); saveDraft();
+        }
+        
+        function clearAll() { expression = ""; histEl.innerText = ""; shouldResetScreen = false; updateDisplay(); localStorage.removeItem('calcDraft'); }
+        function backspace() { 
+            if(shouldResetScreen) { expression = ""; histEl.innerText = ""; shouldResetScreen = false; } 
+            else { expression = expression.slice(0, -1); }
+            updateDisplay(); saveDraft();
+        }
+        function recallAns() { appendNum(lastAns); }
+        function updateDisplay() { 
+            resEl.innerText = expression || "0"; 
+            if(expression.length > 15) resEl.style.fontSize = "2.2rem";
+            else if(expression.length > 10) resEl.style.fontSize = "3rem";
+            else resEl.style.fontSize = "4rem";
+        }
+
+        function sin_custom(x) { return Math.sin(isDegree ? x * Math.PI / 180 : x); }
+        function cos_custom(x) { return Math.cos(isDegree ? x * Math.PI / 180 : x); }
+        function tan_custom(x) { return Math.tan(isDegree ? x * Math.PI / 180 : x); }
+        function asin_custom(x) { return isDegree ? Math.asin(x) * 180 / Math.PI : Math.asin(x); }
+        function acos_custom(x) { return isDegree ? Math.acos(x) * 180 / Math.PI : Math.acos(x); }
+        function atan_custom(x) { return isDegree ? Math.atan(x) * 180 / Math.PI : Math.atan(x); }
+        function fact_custom(n) { n = parseFloat(n); if(n<0 || !Number.isInteger(n)) return NaN; if(n===0||n===1) return 1; let r=1; for(let i=2; i<=n; i++) r*=i; return r; }
+
+        function calculate() {
+            if(!expression) return;
+            try {
+                let evalExp = expression;
+                
+                let openB = (evalExp.match(/\(/g) || []).length;
+                let closeB = (evalExp.match(/\)/g) || []).length;
+                while(openB > closeB) { evalExp += ")"; closeB++; }
+
+                evalExp = evalExp.replace(/([\d.]+)\s*([\+\-])\s*([\d.]+)%/g, "( $1 $2 ($1 * $3 / 100) )");
+                evalExp = evalExp.replace(/([\d.]+)%/g, "($1/100)");
+
+                evalExp = evalExp.replace(/×/g, '*').replace(/÷/g, '/').replace(/π/g, 'Math.PI').replace(/e/g, 'Math.E').replace(/mod/g, '%').replace(/²/g, '**2').replace(/\^/g, '**');
+                
+                evalExp = evalExp.replace(/sin\(/g, 'sin_custom(').replace(/cos\(/g, 'cos_custom(').replace(/tan\(/g, 'tan_custom(');
+                evalExp = evalExp.replace(/asin\(/g, 'asin_custom(').replace(/acos\(/g, 'acos_custom(').replace(/atan\(/g, 'atan_custom(');
+                evalExp = evalExp.replace(/log\(/g, 'Math.log10(').replace(/ln\(/g, 'Math.log(');
+                evalExp = evalExp.replace(/√\(/g, 'Math.sqrt(').replace(/Abs\(/g, 'Math.abs(');
+                evalExp = evalExp.replace(/([0-9.]+)!/g, 'fact_custom($1)');
+
+                evalExp = evalExp.replace(/\b0+(\d+)\b/g, '$1'); 
+
+                let ans = eval(evalExp);
+                
+                // Infinity এবং NaN চেক
+                if(!isFinite(ans) || isNaN(ans)) { resEl.innerText = "Error"; expression = ""; shouldResetScreen = true; localStorage.removeItem('calcDraft'); return; }
+                
+                ans = Math.round(ans * 1000000000) / 1000000000;
+                histEl.innerText = expression + " =";
+                saveToHistory(expression, ans);
+                expression = ans.toString(); lastAns = expression; 
+                shouldResetScreen = true; 
+                updateDisplay(); saveDraft();
+            } catch(e) { resEl.innerText = "Error"; expression = ""; shouldResetScreen = true; localStorage.removeItem('calcDraft');}
+        }
+
+        function convertToFraction() {
+            let v = parseFloat(resEl.innerText); if(isNaN(v) || Number.isInteger(v)) return;
+            let l = v.toString().split('.')[1].length; let d = Math.pow(10, l); let n = v * d;
+            let gcd = (a, b) => b ? gcd(b, a % b) : a; let c = gcd(n, d);
+            expression = `${n/c}/${d/c}`; shouldResetScreen = true; updateDisplay(); saveDraft();
+        }
+
+        function plotGraph() {
+            let expr = document.getElementById('graph-eq').value;
+            let canvas = document.getElementById('graphCanvas');
+            let ctx = canvas.getContext('2d');
+            let w = canvas.width; let h = canvas.height;
+            ctx.clearRect(0, 0, w, h);
+            ctx.strokeStyle = "#dadce0"; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(0, h/2); ctx.lineTo(w, h/2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(w/2, 0); ctx.lineTo(w/2, h); ctx.stroke();
+
+            ctx.strokeStyle = "#1a73e8"; ctx.lineWidth = 2; ctx.beginPath();
+            let isFirst = true;
+            for(let i=0; i<=w; i+=2) {
+                let x = (i - w/2) / 20; 
+                let evalStr = expr.replace(/x/g, `(${x})`).replace(/sin/g, 'Math.sin').replace(/cos/g, 'Math.cos').replace(/tan/g, 'Math.tan').replace(/\^/g, '**');
+                try {
+                    let y = eval(evalStr);
+                    let py = h/2 - (y * 20); 
+                    if(isFirst) { ctx.moveTo(i, py); isFirst = false; } else { ctx.lineTo(i, py); }
+                } catch(e) {}
+            }
+            ctx.stroke();
+        }
+
+        function calcEMI() { 
+            let p = parseFloat(document.getElementById('emi-p').value); 
+            let r = parseFloat(document.getElementById('emi-r').value); 
+            let m = parseFloat(document.getElementById('emi-m').value); 
+            if(isNaN(p)||isNaN(r)||isNaN(m) || m <= 0) return; 
+            
+            let emi = 0, totalAmt = 0, totalInt = 0;
+            if(r === 0) { 
+                emi = p / m; totalAmt = p; totalInt = 0;
+            } else {
+                let mr = (r/100)/12; 
+                emi = (p * mr * Math.pow(1+mr, m)) / (Math.pow(1+mr, m) - 1); 
+                totalAmt = emi * m;
+                totalInt = totalAmt - p;
+            }
+            document.getElementById('emi-res').value = Number(emi.toFixed(2)); 
+            document.getElementById('emi-int').value = Number(totalInt.toFixed(2));
+            document.getElementById('emi-total').value = Number(totalAmt.toFixed(2));
+        }
+
+        function calcProfitLoss() { let cp = parseFloat(document.getElementById('pl-cp').value); let sp = parseFloat(document.getElementById('pl-sp').value); if(isNaN(cp)||isNaN(sp)) return; let diff = sp - cp; let per = (Math.abs(diff)/cp)*100; if(diff >= 0) document.getElementById('pl-res').value = `লাভ: ${Number(diff.toFixed(2))} (${Number(per.toFixed(2))}%)`; else document.getElementById('pl-res').value = `ক্ষতি: ${Number(Math.abs(diff).toFixed(2))} (${Number(per.toFixed(2))}%)`; }
+        function calcVat(isAdd) { let amt = parseFloat(document.getElementById('vat-amt').value); let rate = parseFloat(document.getElementById('vat-rate').value); if(isNaN(amt)||isNaN(rate)) return; let res = isAdd ? amt + (amt*(rate/100)) : amt - (amt*(rate/100)); document.getElementById('vat-res').value = Number(res.toFixed(2)); }
+        function calcDiscount() { let p = parseFloat(document.getElementById('disc-amt').value); let r = parseFloat(document.getElementById('disc-rate').value); if(isNaN(p)||isNaN(r)) return; let save = p * (r/100); document.getElementById('disc-save').value = Number(save.toFixed(2)); document.getElementById('disc-final').value = Number((p - save).toFixed(2)); }
+        function calcCompound() { let p = parseFloat(document.getElementById('ci-p').value); let r = parseFloat(document.getElementById('ci-r').value); let t = parseFloat(document.getElementById('ci-t').value); if(isNaN(p)||isNaN(r)||isNaN(t)) return; let a = p * Math.pow(1 + (r/100), t); document.getElementById('ci-res').value = Number(a.toFixed(2)); }
+        function calcSavings() { let g = parseFloat(document.getElementById('sg-goal').value); let m = parseFloat(document.getElementById('sg-months').value); if(isNaN(g)||isNaN(m)) return; document.getElementById('sg-res').value = Number((g/m).toFixed(2)); }
+
+        function changeEqType() {
+            let type = document.getElementById('eq-type').value; let html = "";
+            if(type === 'quad') { html = `<div style="display:flex; gap:10px;"><div class="form-group" style="flex:1;"><label>a (x²)</label><input type="number" id="eq-a" class="form-control"></div><div class="form-group" style="flex:1;"><label>b (x)</label><input type="number" id="eq-b" class="form-control"></div><div class="form-group" style="flex:1;"><label>c</label><input type="number" id="eq-c" class="form-control"></div></div>`; } 
+            else if(type === 'lin') { html = `<div style="display:flex; gap:10px;"><div class="form-group" style="flex:1;"><label>a (x)</label><input type="number" id="eq-a" class="form-control"></div><div class="form-group" style="flex:1;"><label>b</label><input type="number" id="eq-b" class="form-control"></div></div>`; } 
+            else if(type === 'lin2') { html = `<div style="display:flex; gap:10px;"><div class="form-group"><input type="number" id="eq-a1" class="form-control" placeholder="a₁"></div><div class="form-group"><input type="number" id="eq-b1" class="form-control" placeholder="b₁"></div><div class="form-group"><input type="number" id="eq-c1" class="form-control" placeholder="c₁"></div></div><div style="display:flex; gap:10px;"><div class="form-group"><input type="number" id="eq-a2" class="form-control" placeholder="a₂"></div><div class="form-group"><input type="number" id="eq-b2" class="form-control" placeholder="b₂"></div><div class="form-group"><input type="number" id="eq-c2" class="form-control" placeholder="c₂"></div></div>`; }
+            document.getElementById('eq-inputs-container').innerHTML = html; document.getElementById('eq-res').value = "";
+        }
+        function solveEq() {
+            let type = document.getElementById('eq-type').value; let out = document.getElementById('eq-res');
+            if(type === 'quad') {
+                let a = parseFloat(document.getElementById('eq-a').value); let b = parseFloat(document.getElementById('eq-b').value); let c = parseFloat(document.getElementById('eq-c').value);
+                if(isNaN(a)||isNaN(b)||isNaN(c)) return; if(a===0) { out.value="a=0 হতে পারে না"; return; }
+                let d = (b*b)-(4*a*c); if(d>0) out.value = `x₁ = ${((-b+Math.sqrt(d))/(2*a)).toFixed(2)}, x₂ = ${((-b-Math.sqrt(d))/(2*a)).toFixed(2)}`; else if(d===0) out.value = `x = ${(-b/(2*a)).toFixed(2)}`; else out.value = "অবাস্তব মূল (Imaginary)";
+            } else if(type === 'lin') {
+                let a = parseFloat(document.getElementById('eq-a').value); let b = parseFloat(document.getElementById('eq-b').value);
+                if(isNaN(a)||isNaN(b)) return; if(a===0) { out.value="a=0 হতে পারে না"; return; } out.value = `x = ${(-b/a).toFixed(2)}`;
+            } else if(type === 'lin2') {
+                let a1 = parseFloat(document.getElementById('eq-a1').value); let b1 = parseFloat(document.getElementById('eq-b1').value); let c1 = parseFloat(document.getElementById('eq-c1').value); let a2 = parseFloat(document.getElementById('eq-a2').value); let b2 = parseFloat(document.getElementById('eq-b2').value); let c2 = parseFloat(document.getElementById('eq-c2').value);
+                if(isNaN(a1)||isNaN(b1)||isNaN(c1)||isNaN(a2)||isNaN(b2)||isNaN(c2)) return;
+                let det = (a1*b2) - (a2*b1); if(det === 0) { out.value = "সমাধান নেই"; return; }
+                out.value = `x = ${(((c1*b2)-(c2*b1))/det).toFixed(2)}, y = ${(((a1*c2)-(a2*c1))/det).toFixed(2)}`;
+            }
+        }
+
+        function addGpaRow() {
+            const r = document.createElement('div'); r.className = 'gpa-row';
+            r.innerHTML = `
+                <input type="text" placeholder="কোর্স" style="flex:2; min-width:0;">
+                <select class="gpa-g form-control" style="flex:2; min-width:0; padding:10px 5px;" onchange="calculateGPA()">
+                    <option value="4.00">A+ (4.0)</option><option value="3.75">A (3.75)</option><option value="3.50">A- (3.50)</option><option value="3.25">B+ (3.25)</option><option value="3.00">B (3.00)</option><option value="2.75">B- (2.75)</option><option value="2.50">C+ (2.50)</option><option value="2.25">C (2.25)</option><option value="2.00">D (2.00)</option><option value="0.00">F (0.0)</option>
+                </select>
+                <input type="number" class="gpa-c form-control" style="flex:1; min-width:0; padding:10px 5px;" value="3" oninput="calculateGPA()">
+                <button class="btn-remove" onclick="this.parentElement.remove(); calculateGPA();"><i class="fas fa-times"></i></button>
+            `;
+            document.getElementById('gpa-rows').appendChild(r);
+        }
+        function calculateGPA() {
+            let tg = 0; let tc = 0; let hasF = false;
+            document.querySelectorAll('.gpa-row').forEach(r => { 
+                let g = parseFloat(r.querySelector('.gpa-g').value); 
+                let c = parseFloat(r.querySelector('.gpa-c').value); 
+                if(!isNaN(g) && !isNaN(c)) { 
+                    if(g === 0.00) hasF = true;
+                    tg += (g*c); tc += c; 
+                } 
+            });
+            if(hasF) {
+                document.getElementById('gpa-result').value = "0.00 (Fail)";
+                document.getElementById('gpa-result').style.color = "#d93025";
+            } else {
+                document.getElementById('gpa-result').value = tc > 0 ? (tg/tc).toFixed(2) : "0.00";
+                document.getElementById('gpa-result').style.color = "var(--primary)";
+            }
+        }
+
+        function calcStat() {
+            let arr = document.getElementById('stat-input').value.split(',').map(x => parseFloat(x.trim())).filter(x => !isNaN(x)); if(arr.length === 0) return;
+            let mean = arr.reduce((a, b) => a + b, 0) / arr.length;
+            arr.sort((a, b) => a - b); let mid = Math.floor(arr.length / 2); let median = arr.length % 2 !== 0 ? arr[mid] : (arr[mid - 1] + arr[mid]) / 2;
+            let freq = {}; let maxFreq = 0; let modes = [];
+            arr.forEach(num => { freq[num] = (freq[num] || 0) + 1; if (freq[num] > maxFreq) maxFreq = freq[num]; });
+            for (let num in freq) { if (freq[num] === maxFreq) modes.push(num); }
+            document.getElementById('stat-mean').value = Number(mean.toFixed(2)); document.getElementById('stat-median').value = Number(median.toFixed(2)); document.getElementById('stat-mode').value = modes.join(', ');
+        }
+
+        function convertNum(v, t) {
+            if(!v) { ['dec','bin','oct','hex','rom'].forEach(id => document.getElementById('num-'+id).value=""); return; }
+            let d; if(t==='dec') d = parseInt(v, 10); else if(t==='bin') d = parseInt(v, 2); else if(t==='oct') d = parseInt(v, 8); else d = parseInt(v, 16);
+            if(isNaN(d)) return;
+            if(t!=='dec') document.getElementById('num-dec').value = d.toString(10); if(t!=='bin') document.getElementById('num-bin').value = d.toString(2); if(t!=='oct') document.getElementById('num-oct').value = d.toString(8); if(t!=='hex') document.getElementById('num-hex').value = d.toString(16).toUpperCase();
+            if(t!=='rom') { let romStr = ""; let num = d; const rMap = {M:1000, CM:900, D:500, CD:400, C:100, XC:90, L:50, XL:40, X:10, IX:9, V:5, IV:4, I:1}; for (let i of Object.keys(rMap)) { let q = Math.floor(num / rMap[i]); num -= q * rMap[i]; romStr += i.repeat(q); } document.getElementById('num-rom').value = num>3999 ? "Max 3999" : romStr; }
+        }
+        function convertRoman(str) { if(!str) { convertNum("", "dec"); return; } str = str.toUpperCase(); const rMap = {I:1, V:5, X:10, L:50, C:100, D:500, M:1000}; let n = 0; for (let i = 0; i < str.length; i++) { if (rMap[str[i]] < rMap[str[i+1]]) n -= rMap[str[i]]; else n += rMap[str[i]]; } if(n) { document.getElementById('num-dec').value = n; convertNum(n.toString(), 'dec'); } }
+
+        const uD = { length: { meter:{n:'মিটার', f:1}, km:{n:'কি.মি.', f:1000}, cm:{n:'সেন্টিমিটার', f:0.01}, mm:{n:'মিলিমিটার', f:0.001}, micrometer:{n:'মাইক্রোমিটার', f:0.000001}, nanometer:{n:'ন্যানোমিটার', f:0.000000001}, mile:{n:'মাইল', f:1609.34}, yard:{n:'গজ', f:0.9144}, foot:{n:'ফুট', f:0.3048}, inch:{n:'ইঞ্চি', f:0.0254}, nautical:{n:'নটিক্যাল মাইল', f:1852} }, weight: { kg:{n:'কেজি', f:1}, gm:{n:'গ্রাম', f:0.001}, mg:{n:'মিলিগ্রাম', f:0.000001}, ton:{n:'টন', f:1000}, pound:{n:'পাউন্ড', f:0.453592}, ounce:{n:'আউন্স', f:0.0283495}, carat:{n:'ক্যারেট', f:0.0002} }, area: { sqm:{n:'বর্গ মি.', f:1}, sqkm:{n:'বর্গ কি.মি.', f:1000000}, sqcm:{n:'বর্গ সে.মি.', f:0.0001}, sqft:{n:'বর্গ ফুট', f:0.092903}, sqin:{n:'বর্গ ইঞ্চি', f:0.00064516}, acre:{n:'একর', f:4046.86}, hec:{n:'হেক্টর', f:10000}, katha:{n:'কাঠা', f:66.8902}, bigha:{n:'বিঘা', f:1337.8} }, volume: { liter:{n:'লিটার', f:1}, ml:{n:'মিলিলিটার', f:0.001}, cubicm:{n:'ঘন মিটার', f:1000}, gallon:{n:'গ্যালন', f:3.78541}, quart:{n:'কোয়ার্ট', f:0.946353}, pint:{n:'পিন্ট', f:0.473176} }, speed: { ms:{n:'মিটার/সেকেন্ড', f:1}, kmh:{n:'কি.মি./ঘণ্টা', f:0.277778}, mph:{n:'মাইল/ঘণ্টা', f:0.44704}, knot:{n:'নট', f:0.514444}, mach:{n:'ম্যাক', f:343} }, pressure: { pa:{n:'প্যাসকেল', f:1}, bar:{n:'বার', f:100000}, psi:{n:'PSI', f:6894.76}, atm:{n:'অ্যাটমস্ফিয়ার', f:101325}, torr:{n:'টর', f:133.322} }, energy: { joule:{n:'জুল', f:1}, kj:{n:'কিলোজুল', f:1000}, cal:{n:'ক্যালরি', f:4.184}, kcal:{n:'কিলোক্যালরি', f:4184}, wh:{n:'ওয়াট-ঘণ্টা', f:3600}, kwh:{n:'কিলোওয়াট-ঘণ্টা', f:3600000} }, power: { watt:{n:'ওয়াট', f:1}, kw:{n:'কিলোওয়াট', f:1000}, mw:{n:'মেগাওয়াট', f:1000000}, hp:{n:'হর্সপাওয়ার', f:745.7} } };
+        function updateUnitOptions() { let c = document.getElementById('uc-category').value; if(c === 'temp') { let o = `<option value="c">°C</option><option value="f">°F</option><option value="k">K</option>`; document.getElementById('uc-from').innerHTML = o; document.getElementById('uc-to').innerHTML = o; return; } let h = ""; for(let k in uD[c]) h += `<option value="${k}">${uD[c][k].n}</option>`; document.getElementById('uc-from').innerHTML = h; document.getElementById('uc-to').innerHTML = h; autoConvertUnit(); }
+        
+        function autoConvertUnit() { 
+            let c = document.getElementById('uc-category').value; let v = parseFloat(document.getElementById('uc-input').value); let f = document.getElementById('uc-from').value; let t = document.getElementById('uc-to').value; 
+            if(isNaN(v)) { document.getElementById('uc-output').value = ""; return; } 
+            if(c === 'temp') { let r; if(f==='c'&&t==='f') r=(v*9/5)+32; else if(f==='f'&&t==='c') r=(v-32)*5/9; else if(f==='c'&&t==='k') r=v+273.15; else if(f==='k'&&t==='c') r=v-273.15; else r=v; document.getElementById('uc-output').value = Number(r.toFixed(4)); return; } 
+            let res = ((v * uD[c][f].f) / uD[c][t].f);
+            document.getElementById('uc-output').value = Number(res.toFixed(6)); 
+        }
+
+        function calcTime(v, s) { v = parseFloat(v); if(isNaN(v)) { ['yr','mo','wk','d','h','m','s'].forEach(id => { let el = document.getElementById('tc-'+id); if(el) el.value=""; }); return; } let M = 0; if(s==='s') M = v/(30.416666*86400); if(s==='m') M = v/(30.416666*1440); if(s==='h') M = v/(30.416666*24); if(s==='d') M = v/30.416666; if(s==='wk') M = v/4.345238; if(s==='mo') M = v; if(s==='yr') M = v*12; if(s!=='s') { let el = document.getElementById('tc-s'); if(el) el.value = Number((M*30.416666*86400).toFixed(2)); } if(s!=='m') { let el = document.getElementById('tc-m'); if(el) el.value = Number((M*30.416666*1440).toFixed(2)); } if(s!=='h') { let el = document.getElementById('tc-h'); if(el) el.value = Number((M*30.416666*24).toFixed(4)); } if(s!=='d') { let el = document.getElementById('tc-d'); if(el) el.value = Number((M*30.416666).toFixed(4)); } if(s!=='wk') { let el = document.getElementById('tc-wk'); if(el) el.value = Number((M*4.345238).toFixed(4)); } if(s!=='mo') { let el = document.getElementById('tc-mo'); if(el) el.value = Number((M).toFixed(4)); } if(s!=='yr') { let el = document.getElementById('tc-yr'); if(el) el.value = Number((M/12).toFixed(4)); } }
+        function calcData(v, s) { v = parseFloat(v); if(isNaN(v)){ ['tb','gb','mb','kb'].forEach(id=>document.getElementById('dt-'+id).value=""); return; } let kb = 0; if(s==='kb') kb=v; if(s==='mb') kb=v*1024; if(s==='gb') kb=v*1048576; if(s==='tb') kb=v*1073741824; if(s!=='kb') document.getElementById('dt-kb').value = Number((kb).toFixed(2)); if(s!=='mb') document.getElementById('dt-mb').value = Number((kb/1024).toFixed(4)); if(s!=='gb') document.getElementById('dt-gb').value = Number((kb/1048576).toFixed(6)); if(s!=='tb') document.getElementById('dt-tb').value = Number((kb/1073741824).toFixed(8)); }
+        function calcZakat() { let y = document.getElementById('zak-year-check').checked; let n = parseFloat(document.getElementById('zak-nisab').value) || 0; let t = ((parseFloat(document.getElementById('zak-cash').value)||0) + (parseFloat(document.getElementById('zak-gold').value)||0) + (parseFloat(document.getElementById('zak-silver').value)||0) + (parseFloat(document.getElementById('zak-biz').value)||0)) - (parseFloat(document.getElementById('zak-debt').value)||0); let out = document.getElementById('zak-res'); if(!y) { out.value = "এক বছর পূর্ণ হয়নি (ফরজ নয়)"; out.style.color = "#d93025"; return; } if(t >= n && t > 0) { out.value = Number((t * 0.025).toFixed(2)) + " টাকা"; out.style.color = "var(--primary)"; } else { out.value = "নিসাবের কম (ফরজ নয়)"; out.style.color = "#d93025"; } }
+        function calcLcmGcd() { let v = document.getElementById('lg-input').value; if(!v) return; let arr = v.split(',').map(x => parseInt(x.trim())).filter(x => !isNaN(x)); if(arr.length < 2) return; let gF = (a, b) => b ? gF(b, a % b) : Math.abs(a); let lF = (a, b) => Math.abs(a * b) / gF(a, b); let g = arr[0]; let l = arr[0]; for(let i=1; i<arr.length; i++) { g = gF(g, arr[i]); l = lF(l, arr[i]); } document.getElementById('lg-lcm').value = l; document.getElementById('lg-gcd').value = g; }
+        const cR = { USD:1, BDT:118.5, INR:83.4, EUR:0.93, SAR:3.75, GBP:0.79, AED:3.67, CAD:1.37, AUD:1.51, SGD:1.35, MYR:4.72, JPY:155.4, CNY:7.24, QAR:3.64, KWD:0.31, OMR:0.38, BHD:0.38, PKR:278.5, ZAR:18.5, LKR:300.2, NPR:133.5, RUB:89.5, KRW:1365.2, BRL:5.1, TRY:32.2 };
+        function convertCurr() { let a = parseFloat(document.getElementById('curr-amt').value); let f = document.getElementById('curr-from').value; let t = document.getElementById('curr-to').value; if(!isNaN(a)) document.getElementById('curr-res').value = Number(((a/cR[f])*cR[t]).toFixed(2)); }
+        function calcBMI() { let kg = parseFloat(document.getElementById('bmi-kg').value); let ft = parseFloat(document.getElementById('bmi-ft').value) || 0; let inc = parseFloat(document.getElementById('bmi-in').value) || 0; let out = document.getElementById('bmi-res'); if(isNaN(kg) || (ft === 0 && inc === 0)) return; let m = ((ft*12)+inc)*0.0254; let b = kg/(m*m); let s=""; let c=""; if(b<18.5){s="ওজন কম"; c="#f39c12";}else if(b<=24.9){s="স্বাভাবিক"; c="#27ae60";}else if(b<=29.9){s="অতিরিক্ত ওজন"; c="#e67e22";}else{s="স্থুলকায়"; c="#c0392b";} out.value = `${b.toFixed(1)} - ${s}`; out.style.color = c; }
+        function calcAge() { let b = document.getElementById('birth-date').value; if(!b) return; let bd = new Date(b); let td = new Date(); let y = td.getFullYear() - bd.getFullYear(); let m = td.getMonth() - bd.getMonth(); let d = td.getDate() - bd.getDate(); if(d<0){m--; d+=new Date(td.getFullYear(), td.getMonth(), 0).getDate();} if(m<0){y--; m+=12;} document.getElementById('age-res').value = `${y} বছর, ${m} মাস, ${d} দিন`; }
+
+        let startY = 0; document.addEventListener('touchstart', function(e) { if(e.touches.length > 1) return; startY = e.touches[0].clientY; }, {passive: false});
+        document.addEventListener('touchmove', function(e) { const y = e.touches[0].clientY; const t = e.target.closest('.panel-page, .sidebar, .history-box'); if (!t) { e.preventDefault(); return; } if (t.scrollTop === 0 && y > startY) { e.preventDefault(); } }, {passive: false});
+    </script>
+</body>
+</html>
